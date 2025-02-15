@@ -184,7 +184,7 @@ class LoginScreen extends StatelessWidget {
                             Expanded(
                               child: CustomTextField(
                                 controller: viewModel.customIpController,
-                                label: 'Custom IP Address (Optional)',
+                                label: 'Server Address',
                                 icon: Icons.computer,
                                 keyboardType: TextInputType.text,
                               ),
