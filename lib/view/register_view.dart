@@ -52,14 +52,32 @@ class RegisterScreen extends StatelessWidget {
             SizedBox(height: screenHeight * 0.04),
             if (viewModel.error != null)
               Container(
-                padding: const EdgeInsets.all(8.0),
-                color: theme.colorScheme.error.withOpacity(0.1),
-                child: Text(
-                  viewModel.error!,
-                  style: TextStyle(
-                    color: theme.colorScheme.error,
+                margin: const EdgeInsets.symmetric(horizontal: 16.0),
+                padding: const EdgeInsets.all(12.0),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.error.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8.0),
+                  border: Border.all(
+                    color: theme.colorScheme.error.withOpacity(0.3),
                   ),
-                  textAlign: TextAlign.center,
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.error_outline,
+                      color: theme.colorScheme.error,
+                    ),
+                    const SizedBox(width: 12.0),
+                    Expanded(
+                      child: Text(
+                        viewModel.error!,
+                        style: TextStyle(
+                          color: theme.colorScheme.error,
+                          fontSize: 14.0,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             SizedBox(height: screenHeight * 0.02),
@@ -129,14 +147,26 @@ class RegisterScreen extends StatelessWidget {
     if (context.mounted) {
       if (response.success) {
         Navigator.of(context).pop(); // Return to login screen
-        AppUtils.showSnackBar(
-          context,
-          'Registration successful! Please login.',
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text(
+              'Registration successful! Please login.',
+              style: TextStyle(color: Colors.white),
+            ),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 5),
+          ),
         );
       } else {
-        AppUtils.showSnackBar(
-          context,
-          response.message ?? 'Registration failed',
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              response.message ?? 'Registration failed',
+              style: const TextStyle(color: Colors.white),
+            ),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+          ),
         );
       }
     }

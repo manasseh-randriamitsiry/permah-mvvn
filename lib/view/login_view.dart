@@ -6,6 +6,7 @@ import '../widgets/btn_widget.dart';
 import '../widgets/input_password_widget.dart';
 import '../widgets/input_widget.dart';
 import '../common/util.dart';
+import '../core/constants/app_constants.dart';
 
 class LoginView extends StatelessWidget {
   const LoginView({super.key});
@@ -69,9 +70,9 @@ class LoginScreen extends StatelessWidget {
                     SizedBox(height: screenHeight / 40),
                     InputWidget(
                       icon: Icons.email_outlined,
-                      labelText: 'Username',
-                      controller: viewModel.usernameController,
-                      type: TextInputType.text,
+                      labelText: 'Email',
+                      controller: viewModel.emailController,
+                      type: TextInputType.emailAddress,
                     ),
                     const SizedBox(height: 15),
                     InputPasswordWidget(
@@ -87,20 +88,26 @@ class LoginScreen extends StatelessWidget {
                         onTap: () async {
                           if (!viewModel.validateInputs()) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Please fill all fields'),
+                              SnackBar(
+                                content: Text(viewModel.error ??
+                                    'Please fill all fields'),
+                                backgroundColor: Colors.red,
                               ),
                             );
                             return;
                           }
-                          
+
                           final success = await viewModel.login();
                           if (success && context.mounted) {
-                            // Navigate to home screen
+                            Navigator.of(context)
+                                .pushReplacementNamed(AppConstants.homeRoute);
                           } else if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Login failed'),
+                              SnackBar(
+                                content:
+                                    Text(viewModel.error ?? 'Login failed'),
+                                backgroundColor: Colors.red,
+                                duration: const Duration(seconds: 5),
                               ),
                             );
                           }
@@ -142,7 +149,8 @@ class LoginScreen extends StatelessWidget {
                         style: TextStyle(color: textColor)),
                     GestureDetector(
                       onTap: () {
-                        // Navigate to registration
+                        Navigator.of(context)
+                            .pushNamed(AppConstants.signupRoute);
                       },
                       child: Text(
                         "Register here",
@@ -158,4 +166,4 @@ class LoginScreen extends StatelessWidget {
       ),
     );
   }
-} 
+}

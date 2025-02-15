@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:async';
 import 'package:http/http.dart' as http;
 import '../constants/app_constants.dart';
 import '../../model/api_response.dart';
@@ -6,6 +7,7 @@ import '../../model/api_response.dart';
 class ApiService {
   final String baseUrl;
   String? _token;
+  final Duration timeout = const Duration(seconds: 30);
 
   ApiService({required this.baseUrl});
 
@@ -23,6 +25,7 @@ class ApiService {
   Map<String, String> _getHeaders({bool requiresAuth = true}) {
     final headers = {
       'Content-Type': 'application/json',
+      'Accept': 'application/json',
     };
 
     if (requiresAuth && _token != null) {
@@ -32,75 +35,182 @@ class ApiService {
     return headers;
   }
 
+  // Helper method to handle API errors
+  ApiResponse<T> _handleError<T>(dynamic e, {int? statusCode}) {
+    if (e.toString().contains('SocketException') ||
+        e.toString().contains('Connection refused')) {
+      return ApiResponse.error(
+        'Could not connect to the server. Please check if the server is running and try again.',
+        statusCode: 503,
+      );
+    } else if (e.toString().contains('TimeoutException')) {
+      return ApiResponse.error(
+        'Request timed out. Please check your internet connection and try again.',
+        statusCode: 408,
+      );
+    } else if (e.toString().contains('Method Not Allowed')) {
+      return ApiResponse.error(
+        'Server error: The request method is not allowed. Please contact support.',
+        statusCode: 405,
+      );
+    } else {
+      return ApiResponse.error(
+        'An unexpected error occurred: ${e.toString()}',
+        statusCode: statusCode ?? 500,
+      );
+    }
+  }
+
   // Authentication endpoints
   Future<ApiResponse<Map<String, dynamic>>> login(
       String email, String password) async {
+    final client = http.Client();
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/api/auth/login'),
-        headers: _getHeaders(requiresAuth: false),
-        body: json.encode({
-          'email': email,
-          'password': password,
-        }),
-      );
+      print('Making login request to: $baseUrl/api/auth/login');
+      print('Request body: ${json.encode({
+            'email': email,
+            'password': password,
+          })}');
 
-      final data = json.decode(response.body);
+      final response = await client
+          .post(
+            Uri.parse('$baseUrl/api/auth/login'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: json.encode({
+              'email': email,
+              'password': password,
+            }),
+          )
+          .timeout(timeout);
+
+      print('Login response status code: ${response.statusCode}');
+      print('Login response headers: ${response.headers}');
+      print('Login response body: ${response.body}');
+
       if (response.statusCode == 200) {
-        // Extract token from cookie if present
-        final cookies = response.headers['set-cookie'];
-        if (cookies != null) {
-          final bearerCookie = cookies.split(';').firstWhere(
-                (cookie) => cookie.trim().startsWith('BEARER='),
-                orElse: () => '',
-              );
-          if (bearerCookie.isNotEmpty) {
-            final token = bearerCookie.split('=')[1];
-            setToken(token);
+        try {
+          final data = json.decode(response.body);
+          print('Parsed response data: $data');
+
+          // Check if we have the required data
+          if (!data.containsKey('token') || !data.containsKey('user')) {
+            print('Missing token or user in response');
+            return ApiResponse.error(
+              'Invalid server response: missing token or user data',
+              statusCode: response.statusCode,
+            );
           }
-        }
 
-        // Also set token from response body if present
-        if (data['token'] != null) {
-          setToken(data['token']);
-        }
+          // Set token from response body
+          final token = data['token'] as String;
+          setToken(token);
+          print('Token set from response body');
 
-        return ApiResponse.success(data);
+          // Also check for cookie token
+          final cookies = response.headers['set-cookie'];
+          if (cookies != null) {
+            print('Received cookies: $cookies');
+            final bearerCookie = cookies.split(';').firstWhere(
+                  (cookie) => cookie.trim().startsWith('BEARER='),
+                  orElse: () => '',
+                );
+            if (bearerCookie.isNotEmpty) {
+              final cookieToken = bearerCookie.split('=')[1];
+              print(
+                  'Found BEARER cookie token: ${cookieToken.substring(0, 20)}...');
+              // Note: We already have the token from response body, so we don't need to set it again
+            }
+          }
+
+          return ApiResponse.success(data);
+        } catch (e) {
+          print('Error parsing successful response: $e');
+          return ApiResponse.error(
+            'Error parsing server response: ${e.toString()}',
+            statusCode: response.statusCode,
+          );
+        }
+      } else {
+        try {
+          final data = json.decode(response.body);
+          final errorMessage =
+              data['message'] ?? 'Login failed. Please check your credentials.';
+          print('Error response from server: $errorMessage');
+          return ApiResponse.error(errorMessage,
+              statusCode: response.statusCode);
+        } catch (e) {
+          print('Error parsing error response: $e');
+          return ApiResponse.error(
+            'Login failed. Please check your credentials.',
+            statusCode: response.statusCode,
+          );
+        }
       }
-
+    } on TimeoutException {
+      print('Request timed out');
       return ApiResponse.error(
-        data['message'] ?? 'Login failed',
-        statusCode: response.statusCode,
+        'Request timed out. Please check your internet connection and try again.',
+        statusCode: 408,
       );
     } catch (e) {
-      return ApiResponse.error('Network error: ${e.toString()}');
+      print('Login error: $e');
+      return _handleError(e);
+    } finally {
+      client.close();
     }
   }
 
   Future<ApiResponse<Map<String, dynamic>>> register(
       String name, String email, String password) async {
+    final client = http.Client();
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/api/auth/register'),
-        headers: _getHeaders(requiresAuth: false),
-        body: json.encode({
-          'name': name,
-          'email': email,
-          'password': password,
-        }),
-      );
+      print('Making register request to: $baseUrl/api/auth/register');
+      final response = await client
+          .post(
+            Uri.parse('$baseUrl/api/auth/register'),
+            headers: _getHeaders(requiresAuth: false),
+            body: json.encode({
+              'name': name,
+              'email': email,
+              'password': password,
+            }),
+          )
+          .timeout(timeout);
+
+      print('Register response status code: ${response.statusCode}');
+      print('Register response body: ${response.body}');
+
+      if (response.statusCode == 405) {
+        return ApiResponse.error(
+          'Server error: Register endpoint not properly configured. Please contact support.',
+          statusCode: 405,
+        );
+      }
 
       final data = json.decode(response.body);
       if (response.statusCode == 200) {
         return ApiResponse.success(data);
       }
 
+      String errorMessage = data['message'] ?? 'Registration failed';
+      if (response.statusCode == 409 || errorMessage.contains('duplicate')) {
+        errorMessage =
+            'This email is already registered. Please use a different email or try logging in.';
+      }
+
+      return ApiResponse.error(errorMessage, statusCode: response.statusCode);
+    } on TimeoutException {
       return ApiResponse.error(
-        data['message'] ?? 'Registration failed',
-        statusCode: response.statusCode,
+        'Request timed out. Please check your internet connection and try again.',
+        statusCode: 408,
       );
     } catch (e) {
-      return ApiResponse.error('Network error: ${e.toString()}');
+      return _handleError(e);
+    } finally {
+      client.close();
     }
   }
 

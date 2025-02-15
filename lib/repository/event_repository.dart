@@ -82,16 +82,16 @@ class EventRepository {
     return ApiResponse.error(response.message ?? 'Failed to delete event');
   }
 
-  Future<ApiResponse<bool>> joinEvent(int id) async {
-    final response = await _apiService.joinEvent(id);
+  Future<ApiResponse<bool>> joinEvent(int eventId) async {
+    final response = await _apiService.joinEvent(eventId);
     if (response.success) {
       return ApiResponse.success(true);
     }
     return ApiResponse.error(response.message ?? 'Failed to join event');
   }
 
-  Future<ApiResponse<bool>> leaveEvent(int id) async {
-    final response = await _apiService.leaveEvent(id);
+  Future<ApiResponse<bool>> leaveEvent(int eventId) async {
+    final response = await _apiService.leaveEvent(eventId);
     if (response.success) {
       return ApiResponse.success(true);
     }

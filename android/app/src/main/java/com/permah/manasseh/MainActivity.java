@@ -1,4 +1,4 @@
-package com.permah.permah;
+package com.permah.manasseh;
 
 import io.flutter.embedding.android.FlutterActivity;
 

@@ -42,34 +42,68 @@ class EventListViewModel extends ChangeNotifier {
   }
 
   Future<ApiResponse<void>> joinEvent(int eventId) async {
+    _isLoading = true;
+    notifyListeners();
+
     try {
       final response = await _eventRepository.joinEvent(eventId);
       if (response.success) {
-        await loadEvents(); // Refresh the list after joining
+        // Update the local event list to reflect the change
+        final index = _events.indexWhere((e) => e.id == eventId);
+        if (index != -1) {
+          final updatedEvent = Event(
+            id: _events[index].id,
+            title: _events[index].title,
+            description: _events[index].description,
+            startDate: _events[index].startDate,
+            endDate: _events[index].endDate,
+            location: _events[index].location,
+            availablePlaces: _events[index].availablePlaces - 1,
+            price: _events[index].price,
+            imageUrl: _events[index].imageUrl,
+            isJoined: true,
+          );
+          _events[index] = updatedEvent;
+          notifyListeners();
+        }
       }
       return response;
-    } catch (e) {
-      return ApiResponse(
-        success: false,
-        message: 'Failed to join event: ${e.toString()}',
-        statusCode: 500,
-      );
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
   }
 
   Future<ApiResponse<void>> leaveEvent(int eventId) async {
+    _isLoading = true;
+    notifyListeners();
+
     try {
       final response = await _eventRepository.leaveEvent(eventId);
       if (response.success) {
-        await loadEvents(); // Refresh the list after leaving
+        // Update the local event list to reflect the change
+        final index = _events.indexWhere((e) => e.id == eventId);
+        if (index != -1) {
+          final updatedEvent = Event(
+            id: _events[index].id,
+            title: _events[index].title,
+            description: _events[index].description,
+            startDate: _events[index].startDate,
+            endDate: _events[index].endDate,
+            location: _events[index].location,
+            availablePlaces: _events[index].availablePlaces + 1,
+            price: _events[index].price,
+            imageUrl: _events[index].imageUrl,
+            isJoined: false,
+          );
+          _events[index] = updatedEvent;
+          notifyListeners();
+        }
       }
       return response;
-    } catch (e) {
-      return ApiResponse(
-        success: false,
-        message: 'Failed to leave event: ${e.toString()}',
-        statusCode: 500,
-      );
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
   }
 }

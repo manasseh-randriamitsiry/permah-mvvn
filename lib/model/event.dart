@@ -8,6 +8,7 @@ class Event {
   final int availablePlaces;
   final double price;
   final String? imageUrl;
+  final bool? isJoined;
 
   Event({
     this.id,
@@ -19,6 +20,7 @@ class Event {
     required this.availablePlaces,
     required this.price,
     this.imageUrl,
+    this.isJoined,
   });
 
   factory Event.fromJson(Map<String, dynamic> json) {
@@ -32,6 +34,7 @@ class Event {
       availablePlaces: json['available_places'] as int,
       price: (json['price'] as num).toDouble(),
       imageUrl: json['image_url'] as String?,
+      isJoined: json['is_joined'] as bool?,
     );
   }
 
@@ -40,8 +43,8 @@ class Event {
       if (id != null) 'id': id,
       'title': title,
       'description': description,
-      'startDate': startDate.toIso8601String(),
-      'endDate': endDate.toIso8601String(),
+      'startDate': startDate.toUtc().toIso8601String(),
+      'endDate': endDate.toUtc().toIso8601String(),
       'location': location,
       'available_places': availablePlaces,
       'price': price,
@@ -58,6 +61,7 @@ class Event {
     int? availablePlaces,
     double? price,
     String? imageUrl,
+    bool? isJoined,
   }) {
     return Event(
       id: id,
@@ -69,6 +73,7 @@ class Event {
       availablePlaces: availablePlaces ?? this.availablePlaces,
       price: price ?? this.price,
       imageUrl: imageUrl ?? this.imageUrl,
+      isJoined: isJoined ?? this.isJoined,
     );
   }
 } 

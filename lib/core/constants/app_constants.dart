@@ -1,6 +1,7 @@
 class AppConstants {
   // API URLs
-  static const String apiBaseUrl = 'http://localhost:8000';
+  static const String apiBaseUrl = 'http://192.168.1.127:8000';
+  static const String apiBaseUrl2 = 'http://10.0.2.2:8000';
 
   // Route Names
   static const String loginRoute = '/login';

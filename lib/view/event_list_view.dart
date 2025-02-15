@@ -4,6 +4,10 @@ import '../model/event.dart';
 import '../repository/event_repository.dart';
 import '../viewmodel/event_list_viewmodel.dart';
 import '../core/utils/app_utils.dart';
+import '../widgets/event_card.dart';
+import '../widgets/error_widget.dart';
+import '../widgets/loading_widget.dart';
+import 'create_event_view.dart';
 
 class EventListView extends StatelessWidget {
   const EventListView({super.key});
@@ -25,7 +29,6 @@ class EventListScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final viewModel = Provider.of<EventListViewModel>(context);
-    final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -33,9 +36,19 @@ class EventListScreen extends StatelessWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
-            onPressed: () {
-              // Navigate to create event screen
-              // Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateEventView()));
+            onPressed: () async {
+              // Navigate to create event screen and wait for result
+              final result = await Navigator.push<bool>(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const CreateEventView(),
+                ),
+              );
+              
+              // If event was created successfully (result == true), refresh the list
+              if (result == true) {
+                viewModel.loadEvents();
+              }
             },
           ),
         ],
@@ -45,26 +58,13 @@ class EventListScreen extends StatelessWidget {
         child: Builder(
           builder: (context) {
             if (viewModel.isLoading) {
-              return const Center(child: CircularProgressIndicator());
+              return const LoadingView();
             }
 
             if (viewModel.error != null) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      viewModel.error!,
-                      style: TextStyle(color: theme.colorScheme.error),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: viewModel.loadEvents,
-                      child: const Text('Retry'),
-                    ),
-                  ],
-                ),
+              return ErrorView(
+                message: viewModel.error!,
+                onRetry: viewModel.loadEvents,
               );
             }
 
@@ -81,22 +81,8 @@ class EventListScreen extends StatelessWidget {
                 final event = viewModel.events[index];
                 return EventCard(
                   event: event,
-                  onJoin: () async {
-                    final response = await viewModel.joinEvent(event.id!);
-                    if (context.mounted) {
-                      if (response.success) {
-                        AppUtils.showSnackBar(
-                          context,
-                          'Successfully joined the event',
-                        );
-                      } else {
-                        AppUtils.showSnackBar(
-                          context,
-                          viewModel.error ?? 'Failed to join event',
-                        );
-                      }
-                    }
-                  },
+                  onJoin: () => _handleJoinEvent(context, viewModel, event),
+                  onLeave: () => _handleLeaveEvent(context, viewModel, event),
                   onTap: () {
                     // Navigate to event details
                     // Navigator.push(context, MaterialPageRoute(
@@ -111,109 +97,40 @@ class EventListScreen extends StatelessWidget {
       ),
     );
   }
-}
 
-class EventCard extends StatelessWidget {
-  final Event event;
-  final VoidCallback onJoin;
-  final VoidCallback onTap;
+  Future<void> _handleJoinEvent(
+    BuildContext context,
+    EventListViewModel viewModel,
+    Event event,
+  ) async {
+    final response = await viewModel.joinEvent(event.id!);
+    if (context.mounted) {
+      if (response.success) {
+        AppUtils.showSnackBar(context, 'Successfully joined the event');
+      } else {
+        AppUtils.showSnackBar(
+          context,
+          viewModel.error ?? 'Failed to join event',
+        );
+      }
+    }
+  }
 
-  const EventCard({
-    super.key,
-    required this.event,
-    required this.onJoin,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      child: InkWell(
-        onTap: onTap,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (event.imageUrl != null)
-              Image.network(
-                event.imageUrl!,
-                height: 200,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-              ),
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    event.title,
-                    style: theme.textTheme.titleLarge,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    event.description,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Icon(Icons.location_on,
-                          size: 16, color: theme.primaryColor),
-                      const SizedBox(width: 4),
-                      Expanded(
-                        child: Text(
-                          event.location,
-                          style: theme.textTheme.bodyMedium,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Icon(Icons.calendar_today,
-                          size: 16, color: theme.primaryColor),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${event.startDate.toString().split(' ')[0]} - ${event.endDate.toString().split(' ')[0]}',
-                        style: theme.textTheme.bodyMedium,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Available: ${event.availablePlaces}',
-                        style: theme.textTheme.bodyMedium,
-                      ),
-                      Text(
-                        event.price > 0 ? '\$${event.price}' : 'Free',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          color: theme.primaryColor,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: onJoin,
-                      child: const Text('Join Event'),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+  Future<void> _handleLeaveEvent(
+    BuildContext context,
+    EventListViewModel viewModel,
+    Event event,
+  ) async {
+    final response = await viewModel.leaveEvent(event.id!);
+    if (context.mounted) {
+      if (response.success) {
+        AppUtils.showSnackBar(context, 'Successfully left the event');
+      } else {
+        AppUtils.showSnackBar(
+          context,
+          viewModel.error ?? 'Failed to leave event',
+        );
+      }
+    }
   }
 }

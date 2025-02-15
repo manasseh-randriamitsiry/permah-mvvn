@@ -51,11 +51,13 @@ class MyApp extends StatelessWidget {
           colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
           useMaterial3: true,
         ),
-        initialRoute: authRepository.currentUser == null ? '/login' : '/home',
+        initialRoute: authRepository.currentUser == null
+            ? AppConstants.loginRoute
+            : AppConstants.homeRoute,
         routes: {
-          '/login': (context) => const LoginView(),
-          '/register': (context) => const RegisterView(),
-          '/home': (context) => const HomeView(),
+          AppConstants.loginRoute: (context) => const LoginView(),
+          AppConstants.signupRoute: (context) => const RegisterView(),
+          AppConstants.homeRoute: (context) => const HomeView(),
         },
       ),
     );

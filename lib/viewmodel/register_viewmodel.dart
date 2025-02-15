@@ -2,14 +2,16 @@ import 'package:flutter/material.dart';
 import '../model/api_response.dart';
 import '../model/user.dart';
 import '../repository/auth_repository.dart';
+import '../core/constants/app_constants.dart';
 
 class RegisterViewModel extends ChangeNotifier {
   final AuthRepository _authRepository;
   final TextEditingController nameController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
-  final TextEditingController confirmPasswordController = TextEditingController();
-  
+  final TextEditingController confirmPasswordController =
+      TextEditingController();
+
   bool _isLoading = false;
   String? _error;
 
@@ -29,26 +31,48 @@ class RegisterViewModel extends ChangeNotifier {
   }
 
   bool validateInputs() {
-    if (nameController.text.trim().isEmpty ||
-        emailController.text.trim().isEmpty ||
-        passwordController.text.isEmpty ||
-        confirmPasswordController.text.isEmpty) {
-      setError('All fields are required');
+    // Check for empty fields with specific messages
+    if (nameController.text.trim().isEmpty) {
+      setError('Name is required');
+      return false;
+    }
+    if (emailController.text.trim().isEmpty) {
+      setError('Email is required');
+      return false;
+    }
+    if (passwordController.text.isEmpty) {
+      setError('Password is required');
+      return false;
+    }
+    if (confirmPasswordController.text.isEmpty) {
+      setError('Please confirm your password');
       return false;
     }
 
+    // Validate email format
+    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+        .hasMatch(emailController.text.trim())) {
+      setError('Please enter a valid email address');
+      return false;
+    }
+
+    // Validate password length
+    if (passwordController.text.length < AppConstants.minPasswordLength) {
+      setError(
+          'Password must be at least ${AppConstants.minPasswordLength} characters');
+      return false;
+    }
+
+    // Validate password complexity
+    if (!RegExp(r'^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{6,}$')
+        .hasMatch(passwordController.text)) {
+      setError('Password must contain at least one letter and one number');
+      return false;
+    }
+
+    // Check if passwords match
     if (passwordController.text != confirmPasswordController.text) {
       setError('Passwords do not match');
-      return false;
-    }
-
-    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(emailController.text.trim())) {
-      setError('Please enter a valid email');
-      return false;
-    }
-
-    if (passwordController.text.length < 6) {
-      setError('Password must be at least 6 characters');
       return false;
     }
 
@@ -62,22 +86,42 @@ class RegisterViewModel extends ChangeNotifier {
     }
 
     setLoading(true);
+    setError(null);
+
     try {
       final response = await _authRepository.register(
         nameController.text.trim(),
         emailController.text.trim(),
         passwordController.text,
       );
-      
+
       setLoading(false);
       if (!response.success) {
-        setError(response.message);
+        String errorMessage = response.message ?? 'Registration failed';
+
+        // Make error messages more user-friendly
+        if (errorMessage.contains('duplicate')) {
+          errorMessage =
+              'This email is already registered. Please use a different email or try logging in.';
+        } else if (errorMessage.contains('validation')) {
+          errorMessage = 'Please check your input and try again.';
+        }
+
+        setError(errorMessage);
       }
       return response;
     } catch (e) {
       setLoading(false);
-      setError(e.toString());
-      return ApiResponse.error(e.toString());
+      if (e.toString().contains('SocketException') ||
+          e.toString().contains('Connection refused')) {
+        setError(
+            'Network error: Could not connect to the server. Please check your internet connection and try again.');
+      } else if (e.toString().contains('TimeoutException')) {
+        setError('Network error: The connection timed out. Please try again.');
+      } else {
+        setError('An unexpected error occurred: ${e.toString()}');
+      }
+      return ApiResponse.error(_error ?? e.toString());
     }
   }
 
@@ -89,4 +133,4 @@ class RegisterViewModel extends ChangeNotifier {
     confirmPasswordController.dispose();
     super.dispose();
   }
-} 
+}
