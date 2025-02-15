@@ -2,20 +2,21 @@ import 'package:flutter/material.dart';
 import '../model/api_response.dart';
 import '../model/user.dart';
 import '../repository/auth_repository.dart';
+import '../core/services/api_service.dart';
 import '../core/constants/app_constants.dart';
 
 class RegisterViewModel extends ChangeNotifier {
   final AuthRepository _authRepository;
+  final ApiService _apiService;
   final TextEditingController nameController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
-  final TextEditingController confirmPasswordController =
-      TextEditingController();
+  final TextEditingController confirmPasswordController = TextEditingController();
 
   bool _isLoading = false;
   String? _error;
 
-  RegisterViewModel(this._authRepository);
+  RegisterViewModel(this._authRepository, this._apiService);
 
   bool get isLoading => _isLoading;
   String? get error => _error;
@@ -92,30 +93,22 @@ class RegisterViewModel extends ChangeNotifier {
       final response = await _authRepository.register(
         nameController.text.trim(),
         emailController.text.trim(),
-        passwordController.text,
+        passwordController.text.trim(),
       );
 
       setLoading(false);
-      if (!response.success) {
-        String errorMessage = response.message ?? 'Registration failed';
-
-        // Make error messages more user-friendly
-        if (errorMessage.contains('duplicate')) {
-          errorMessage =
-              'This email is already registered. Please use a different email or try logging in.';
-        } else if (errorMessage.contains('validation')) {
-          errorMessage = 'Please check your input and try again.';
-        }
-
-        setError(errorMessage);
+      if (response.success && response.data != null) {
+        return response;
       }
+
+      setError(response.message ?? 'Registration failed');
       return response;
     } catch (e) {
       setLoading(false);
       if (e.toString().contains('SocketException') ||
           e.toString().contains('Connection refused')) {
         setError(
-            'Network error: Could not connect to the server. Please check your internet connection and try again.');
+            'Network error: Could not connect to the server. Please check your IP address and make sure the server is running.');
       } else if (e.toString().contains('TimeoutException')) {
         setError('Network error: The connection timed out. Please try again.');
       } else {

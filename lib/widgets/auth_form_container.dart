@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 class AuthFormContainer extends StatelessWidget {
   final String title;
   final List<Widget> children;
+  final Widget? titleTrailing;
 
   const AuthFormContainer({
     super.key,
     required this.title,
     required this.children,
+    this.titleTrailing,
   });
 
   @override
@@ -35,11 +37,19 @@ class AuthFormContainer extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              title,
-              style: theme.textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+            Row(
+              children: [
+                Text(
+                  title,
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                if (titleTrailing != null) ...[
+                  const SizedBox(width: 8),
+                  titleTrailing!,
+                ],
+              ],
             ),
             const SizedBox(height: 32),
             ...children,

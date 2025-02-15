@@ -10,6 +10,7 @@ import '../widgets/auth_form_container.dart';
 import '../widgets/custom_text_field.dart';
 import '../widgets/message_widget.dart';
 import '../widgets/loading_button.dart';
+import '../widgets/server_settings_dialog.dart';
 
 class LoginView extends StatelessWidget {
   const LoginView({super.key});
@@ -43,100 +44,10 @@ class LoginScreen extends StatelessWidget {
     );
   }
 
-  void _showIpHelpDialog(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    final maxWidth = size.width * 0.9 < 400 ? size.width * 0.9 : 400.0;
-
+  void _showServerSettings(BuildContext context) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Wrap(
-          alignment: WrapAlignment.start,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          spacing: 8,
-          children: [
-            Icon(
-              Icons.help_outline,
-              color: Theme.of(context).primaryColor,
-            ),
-            const Text('How to Find Your IP Address'),
-          ],
-        ),
-        contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
-        content: Container(
-          width: maxWidth,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildOSInstructions(
-                  context,
-                  'Windows',
-                  '1. Open Command Prompt (cmd)\n'
-                  '2. Type "ipconfig"\n'
-                  '3. Look for "IPv4 Address" under your network adapter',
-                ),
-                const SizedBox(height: 16),
-                _buildOSInstructions(
-                  context,
-                  'Mac',
-                  '1. Open Terminal\n'
-                  '2. Type "ifconfig | grep inet"\n'
-                  '3. Look for "inet" followed by your IP',
-                ),
-                const SizedBox(height: 16),
-                _buildOSInstructions(
-                  context,
-                  'Linux',
-                  '1. Open Terminal\n'
-                  '2. Type "ip addr" or "ifconfig"\n'
-                  '3. Look for "inet" followed by your IP',
-                ),
-                const SizedBox(height: 16),
-                const Divider(),
-                const SizedBox(height: 8),
-                Text(
-                  'Note:',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.error,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                const Text(
-                  '• Make sure both devices are on the same network\n'
-                  '• The server must be running on port 8000\n'
-                  '• Format: xxx.xxx.xxx.xxx:8000',
-                ),
-                const SizedBox(height: 8),
-              ],
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Got it'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildOSInstructions(BuildContext context, String os, String instructions) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          '$os:',
-          style: Theme.of(context).textTheme.titleMedium,
-        ),
-        const SizedBox(height: 4),
-        Text(
-          instructions,
-          style: Theme.of(context).textTheme.bodyMedium,
-        ),
-      ],
+      builder: (context) => const ServerSettingsDialog(),
     );
   }
 
@@ -158,6 +69,12 @@ class LoginScreen extends StatelessWidget {
                 ),
                 AuthFormContainer(
                   title: 'Login',
+                  titleTrailing: IconButton(
+                    icon: const Icon(Icons.settings),
+                    onPressed: () => _showServerSettings(context),
+                    tooltip: 'Server Settings',
+                    iconSize: 20,
+                  ),
                   children: [
                     CustomTextField(
                       controller: viewModel.emailController,
@@ -171,40 +88,6 @@ class LoginScreen extends StatelessWidget {
                       label: 'Password',
                       icon: Icons.lock_outline,
                       isPassword: true,
-                    ),
-                    const SizedBox(height: 24),
-                    ExpansionTile(
-                      title: Text(
-                        'Advanced Settings',
-                        style: theme.textTheme.titleMedium,
-                      ),
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: CustomTextField(
-                                controller: viewModel.customIpController,
-                                label: 'Server Address',
-                                icon: Icons.computer,
-                                keyboardType: TextInputType.text,
-                              ),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.help_outline),
-                              onPressed: () => _showIpHelpDialog(context),
-                              tooltip: 'How to find your IP address',
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Leave empty to use default server',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.hintColor,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                      ],
                     ),
                     const SizedBox(height: 24),
                     LoadingButton(
