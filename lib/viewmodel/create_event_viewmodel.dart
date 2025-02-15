@@ -44,6 +44,19 @@ class CreateEventViewModel extends ChangeNotifier {
     }
   }
 
+  void resetForm() {
+    titleController.clear();
+    descriptionController.clear();
+    locationController.clear();
+    availablePlacesController.clear();
+    priceController.clear();
+    imageUrlController.clear();
+    _startDate = null;
+    _endDate = null;
+    _error = null;
+    notifyListeners();
+  }
+
   bool validateInputs() {
     if (titleController.text.isEmpty ||
         descriptionController.text.isEmpty ||

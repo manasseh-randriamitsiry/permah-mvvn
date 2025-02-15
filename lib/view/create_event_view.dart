@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../repository/event_repository.dart';
 import '../viewmodel/create_event_viewmodel.dart';
-import '../widgets/input_widget.dart';
 import '../core/utils/app_utils.dart';
 
 class CreateEventView extends StatelessWidget {
@@ -14,185 +13,249 @@ class CreateEventView extends StatelessWidget {
       create: (_) => CreateEventViewModel(
         eventRepository: Provider.of<EventRepository>(context, listen: false),
       ),
-      child: const CreateEventScreen(),
+      child: const Scaffold(
+        body: CreateEventScreen(),
+      ),
     );
   }
 }
 
-class CreateEventScreen extends StatelessWidget {
+class CreateEventScreen extends StatefulWidget {
   const CreateEventScreen({super.key});
+
+  @override
+  State<CreateEventScreen> createState() => _CreateEventScreenState();
+}
+
+class _CreateEventScreenState extends State<CreateEventScreen> {
+  final _formKey = GlobalKey<FormState>();
+
+  Future<void> _selectDate(BuildContext context, bool isStartDate) async {
+    final viewModel = Provider.of<CreateEventViewModel>(context, listen: false);
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: isStartDate ? viewModel.startDate ?? DateTime.now() : viewModel.endDate ?? DateTime.now().add(const Duration(hours: 2)),
+      firstDate: isStartDate ? DateTime.now() : viewModel.startDate ?? DateTime.now(),
+      lastDate: DateTime(2101),
+    );
+    if (picked != null) {
+      final TimeOfDay? time = await showTimePicker(
+        context: context,
+        initialTime: TimeOfDay.fromDateTime(
+          isStartDate ? viewModel.startDate ?? DateTime.now() : viewModel.endDate ?? DateTime.now().add(const Duration(hours: 2)),
+        ),
+      );
+      if (time != null && mounted) {
+        if (isStartDate) {
+          viewModel.setStartDate(DateTime(
+            picked.year,
+            picked.month,
+            picked.day,
+            time.hour,
+            time.minute,
+          ));
+        } else {
+          viewModel.setEndDate(DateTime(
+            picked.year,
+            picked.month,
+            picked.day,
+            time.hour,
+            time.minute,
+          ));
+        }
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final viewModel = Provider.of<CreateEventViewModel>(context);
-    final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Create Event'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (viewModel.error != null)
-              Container(
-                padding: const EdgeInsets.all(8),
-                margin: const EdgeInsets.only(bottom: 16),
-                color: theme.colorScheme.error.withOpacity(0.1),
-                child: Text(
-                  viewModel.error!,
-                  style: TextStyle(color: theme.colorScheme.error),
+      body: SafeArea(
+        child: Form(
+          key: _formKey,
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              TextFormField(
+                controller: viewModel.titleController,
+                decoration: const InputDecoration(
+                  labelText: 'Title',
+                  border: OutlineInputBorder(),
                 ),
-              ),
-            InputWidget(
-              icon: Icons.title,
-              labelText: 'Event Title',
-              controller: viewModel.titleController,
-              type: TextInputType.text,
-            ),
-            const SizedBox(height: 16),
-            InputWidget(
-              icon: Icons.description,
-              labelText: 'Description',
-              controller: viewModel.descriptionController,
-              type: TextInputType.multiline,
-              maxLines: 3,
-            ),
-            const SizedBox(height: 16),
-            InputWidget(
-              icon: Icons.location_on,
-              labelText: 'Location',
-              controller: viewModel.locationController,
-              type: TextInputType.text,
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: ListTile(
-                    leading: const Icon(Icons.calendar_today),
-                    title: const Text('Start Date'),
-                    subtitle: Text(
-                      viewModel.startDate?.toString().split('.')[0] ??
-                          'Not set',
-                    ),
-                    onTap: () async {
-                      final date = await showDatePicker(
-                        context: context,
-                        initialDate: DateTime.now(),
-                        firstDate: DateTime.now(),
-                        lastDate: DateTime.now().add(const Duration(days: 365)),
-                      );
-                      if (date != null) {
-                        final time = await showTimePicker(
-                          context: context,
-                          initialTime: TimeOfDay.now(),
-                        );
-                        if (time != null) {
-                          viewModel.setStartDate(DateTime(
-                            date.year,
-                            date.month,
-                            date.day,
-                            time.hour,
-                            time.minute,
-                          ));
-                        }
-                      }
-                    },
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: ListTile(
-                    leading: const Icon(Icons.calendar_today),
-                    title: const Text('End Date'),
-                    subtitle: Text(
-                      viewModel.endDate?.toString().split('.')[0] ?? 'Not set',
-                    ),
-                    onTap: () async {
-                      final date = await showDatePicker(
-                        context: context,
-                        initialDate: viewModel.startDate ?? DateTime.now(),
-                        firstDate: viewModel.startDate ?? DateTime.now(),
-                        lastDate: DateTime.now().add(const Duration(days: 365)),
-                      );
-                      if (date != null) {
-                        final time = await showTimePicker(
-                          context: context,
-                          initialTime: TimeOfDay.now(),
-                        );
-                        if (time != null) {
-                          viewModel.setEndDate(DateTime(
-                            date.year,
-                            date.month,
-                            date.day,
-                            time.hour,
-                            time.minute,
-                          ));
-                        }
-                      }
-                    },
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            InputWidget(
-              icon: Icons.people,
-              labelText: 'Available Places',
-              controller: viewModel.availablePlacesController,
-              type: TextInputType.number,
-            ),
-            const SizedBox(height: 16),
-            InputWidget(
-              icon: Icons.attach_money,
-              labelText: 'Price',
-              controller: viewModel.priceController,
-              type: TextInputType.number,
-            ),
-            const SizedBox(height: 16),
-            InputWidget(
-              icon: Icons.image,
-              labelText: 'Image URL (Optional)',
-              controller: viewModel.imageUrlController,
-              type: TextInputType.url,
-            ),
-            const SizedBox(height: 32),
-            if (viewModel.isLoading)
-              const Center(child: CircularProgressIndicator())
-            else
-              ElevatedButton(
-                onPressed: () async {
-                  final response = await viewModel.createEvent();
-                  if (context.mounted) {
-                    if (response.success) {
-                      Navigator.pop(context, true);
-                      AppUtils.showSnackBar(
-                        context,
-                        'Event created successfully',
-                      );
-                    } else {
-                      AppUtils.showSnackBar(
-                        context,
-                        response.message ?? 'Failed to create event',
-                      );
-                    }
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter a title';
                   }
+                  return null;
                 },
-                child: const Padding(
-                  padding: EdgeInsets.all(12),
-                  child: Text('CREATE EVENT'),
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: viewModel.descriptionController,
+                decoration: const InputDecoration(
+                  labelText: 'Description',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 3,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter a description';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: viewModel.locationController,
+                decoration: const InputDecoration(
+                  labelText: 'Location',
+                  border: OutlineInputBorder(),
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter a location';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: viewModel.availablePlacesController,
+                      decoration: const InputDecoration(
+                        labelText: 'Available Places',
+                        border: OutlineInputBorder(),
+                      ),
+                      keyboardType: TextInputType.number,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter available places';
+                        }
+                        final places = int.tryParse(value);
+                        if (places == null || places < 1) {
+                          return 'Please enter a valid number';
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: TextFormField(
+                      controller: viewModel.priceController,
+                      decoration: const InputDecoration(
+                        labelText: 'Price',
+                        border: OutlineInputBorder(),
+                        prefixText: '\$',
+                      ),
+                      keyboardType: TextInputType.number,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter a price';
+                        }
+                        final price = double.tryParse(value);
+                        if (price == null || price < 0) {
+                          return 'Please enter a valid price';
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: viewModel.imageUrlController,
+                decoration: const InputDecoration(
+                  labelText: 'Image URL (optional)',
+                  border: OutlineInputBorder(),
                 ),
               ),
-          ],
+              const SizedBox(height: 16),
+              ListTile(
+                title: const Text('Start Date & Time'),
+                subtitle: Text(
+                  viewModel.startDate != null
+                      ? _formatDateTime(viewModel.startDate!)
+                      : 'Not set',
+                ),
+                trailing: const Icon(Icons.calendar_today),
+                onTap: () => _selectDate(context, true),
+              ),
+              ListTile(
+                title: const Text('End Date & Time'),
+                subtitle: Text(
+                  viewModel.endDate != null
+                      ? _formatDateTime(viewModel.endDate!)
+                      : 'Not set',
+                ),
+                trailing: const Icon(Icons.calendar_today),
+                onTap: () => _selectDate(context, false),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.all(16),
+                  ),
+                  onPressed: viewModel.isLoading
+                      ? null
+                      : () async {
+                          if (_formKey.currentState!.validate()) {
+                            final response = await viewModel.createEvent();
+                            if (mounted) {
+                              if (response.success) {
+                                // Reset form and show success message
+                                viewModel.resetForm();
+                                if (context.mounted) {
+                                  AppUtils.showSnackBar(
+                                    context,
+                                    'Event created successfully',
+                                  );
+                                  // Navigate back to events list using Navigator
+                                  Navigator.of(context).pop(true);
+                                }
+                              } else {
+                                AppUtils.showSnackBar(
+                                  context,
+                                  response.message ?? 'Failed to create event',
+                                );
+                              }
+                            }
+                          }
+                        },
+                  child: viewModel.isLoading
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : const Text('CREATE EVENT'),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
+  }
+
+  String _formatDateTime(DateTime dateTime) {
+    return '${dateTime.year}-${dateTime.month.toString().padLeft(2, '0')}-${dateTime.day.toString().padLeft(2, '0')} '
+        '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
   }
 }

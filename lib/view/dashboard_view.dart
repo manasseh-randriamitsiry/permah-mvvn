@@ -26,37 +26,32 @@ class _DashboardViewState extends State<DashboardView> {
   Widget build(BuildContext context) {
     final viewModel = Provider.of<EventListViewModel>(context);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Dashboard'),
-      ),
-      body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: viewModel.loadEvents,
-          child: Builder(
-            builder: (context) {
-              if (viewModel.isLoading) {
-                return const LoadingView();
-              }
+    return SafeArea(
+      child: RefreshIndicator(
+        onRefresh: viewModel.loadEvents,
+        child: Builder(
+          builder: (context) {
+            if (viewModel.isLoading) {
+              return const LoadingView();
+            }
 
-              if (viewModel.error != null) {
-                return ErrorView(
-                  message: viewModel.error!,
-                  onRetry: viewModel.loadEvents,
-                );
-              }
-
-              return SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                child: Column(
-                  children: [
-                    EventStatistics(events: viewModel.events),
-                    // Add more dashboard widgets here in the future
-                  ],
-                ),
+            if (viewModel.error != null) {
+              return ErrorView(
+                message: viewModel.error!,
+                onRetry: viewModel.loadEvents,
               );
-            },
-          ),
+            }
+
+            return SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: Column(
+                children: [
+                  EventStatistics(events: viewModel.events),
+                  // Add more dashboard widgets here in the future
+                ],
+              ),
+            );
+          },
         ),
       ),
     );

@@ -8,7 +8,6 @@ import '../core/utils/app_utils.dart';
 import '../widgets/event_card.dart';
 import '../widgets/error_widget.dart';
 import '../widgets/loading_widget.dart';
-import 'create_event_view.dart';
 import 'event_detail_view.dart';
 
 class EventListView extends StatelessWidget {
@@ -50,78 +49,55 @@ class _EventListScreenState extends State<EventListScreen> {
         .email;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Events'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: () async {
-              // Navigate to create event screen and wait for result
-              final result = await Navigator.push<bool>(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const CreateEventView(),
-                ),
+
+      body: RefreshIndicator(
+        onRefresh: viewModel.loadEvents,
+        child: Builder(
+          builder: (context) {
+            if (viewModel.isLoading) {
+              return const LoadingView();
+            }
+
+            if (viewModel.error != null) {
+              return ErrorView(
+                message: viewModel.error!,
+                onRetry: viewModel.loadEvents,
               );
-              
-              // If event was created successfully (result == true), refresh the list
-              if (result == true) {
-                viewModel.loadEvents();
-              }
-            },
-          ),
-        ],
-      ),
-      body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: viewModel.loadEvents,
-          child: Builder(
-            builder: (context) {
-              if (viewModel.isLoading) {
-                return const LoadingView();
-              }
+            }
 
-              if (viewModel.error != null) {
-                return ErrorView(
-                  message: viewModel.error!,
-                  onRetry: viewModel.loadEvents,
-                );
-              }
-
-              if (viewModel.events.isEmpty) {
-                return const Center(
-                  child: Text('No events found'),
-                );
-              }
-
-              return ListView.builder(
-                padding: const EdgeInsets.all(8),
-                itemCount: viewModel.events.length,
-                itemBuilder: (context, index) {
-                  final event = viewModel.events[index];
-                  return EventCard(
-                    event: event,
-                    currentUserEmail: currentUserEmail,
-                    onJoin: () => _handleJoinEvent(context, viewModel, event),
-                    onLeave: () => _handleLeaveEvent(context, viewModel, event),
-                    onTap: () async {
-                      final result = await Navigator.push<bool>(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => EventDetailView(eventId: event.id!),
-                        ),
-                      );
-                      
-                      // Refresh the list if the event was updated or deleted
-                      if (result == true) {
-                        viewModel.loadEvents();
-                      }
-                    },
-                  );
-                },
+            if (viewModel.events.isEmpty) {
+              return const Center(
+                child: Text('No events found'),
               );
-            },
-          ),
+            }
+
+            return ListView.builder(
+              padding: const EdgeInsets.all(8),
+              itemCount: viewModel.events.length,
+              itemBuilder: (context, index) {
+                final event = viewModel.events[index];
+                return EventCard(
+                  event: event,
+                  currentUserEmail: currentUserEmail,
+                  onJoin: () => _handleJoinEvent(context, viewModel, event),
+                  onLeave: () => _handleLeaveEvent(context, viewModel, event),
+                  onTap: () async {
+                    final result = await Navigator.push<bool>(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => EventDetailView(eventId: event.id!),
+                      ),
+                    );
+
+                    // Refresh the list if the event was updated or deleted
+                    if (result == true) {
+                      viewModel.loadEvents();
+                    }
+                  },
+                );
+              },
+            );
+          },
         ),
       ),
     );
