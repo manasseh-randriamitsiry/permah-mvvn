@@ -1,45 +1,32 @@
 import '../model/api_response.dart';
 import '../model/event.dart';
+import '../core/services/api_service.dart';
 
 class EventRepository {
-  final List<Event> _mockEvents = [
-    Event(
-      id: 1,
-      title: 'Test Event 1',
-      description: 'This is a test event',
-      startDate: DateTime.now().add(const Duration(days: 1)),
-      endDate: DateTime.now().add(const Duration(days: 2)),
-      location: 'Test Location',
-      availablePlaces: 10,
-      price: 0,
-    ),
-    Event(
-      id: 2,
-      title: 'Test Event 2',
-      description: 'This is another test event',
-      startDate: DateTime.now().add(const Duration(days: 3)),
-      endDate: DateTime.now().add(const Duration(days: 4)),
-      location: 'Test Location 2',
-      availablePlaces: 20,
-      price: 10,
-    ),
-  ];
+  final ApiService _apiService;
+
+  EventRepository({required ApiService apiService}) : _apiService = apiService;
 
   Future<ApiResponse<List<Event>>> getEvents() async {
-    return ApiResponse.success(_mockEvents);
+    final response = await _apiService.getEvents();
+    if (response.success && response.data != null) {
+      final events = response.data!.map((e) => Event.fromJson(e)).toList();
+      return ApiResponse.success(events);
+    }
+    return ApiResponse.error(response.message ?? 'Failed to fetch events');
   }
 
   Future<ApiResponse<Event>> getEvent(int id) async {
-    final event = _mockEvents.firstWhere(
-      (e) => e.id == id,
-      orElse: () => throw Exception('Event not found'),
-    );
-    return ApiResponse.success(event);
+    final response = await _apiService.getEvent(id);
+    if (response.success && response.data != null) {
+      final event = Event.fromJson(response.data!);
+      return ApiResponse.success(event);
+    }
+    return ApiResponse.error(response.message ?? 'Failed to fetch event');
   }
 
   Future<ApiResponse<Event>> createEvent(Event event) async {
-    final newEvent = Event(
-      id: _mockEvents.length + 1,
+    final response = await _apiService.createEvent(
       title: event.title,
       description: event.description,
       startDate: event.startDate,
@@ -50,8 +37,11 @@ class EventRepository {
       imageUrl: event.imageUrl,
     );
 
-    _mockEvents.add(newEvent);
-    return ApiResponse.success(newEvent);
+    if (response.success && response.data != null) {
+      final createdEvent = Event.fromJson(response.data!);
+      return ApiResponse.success(createdEvent);
+    }
+    return ApiResponse.error(response.message ?? 'Failed to create event');
   }
 
   Future<ApiResponse<Event>> updateEvent(
@@ -65,78 +55,46 @@ class EventRepository {
     double? price,
     String? imageUrl,
   }) async {
-    final index = _mockEvents.indexWhere((e) => e.id == id);
-    if (index == -1) {
-      return ApiResponse.error('Event not found');
-    }
-
-    final oldEvent = _mockEvents[index];
-    final updatedEvent = Event(
-      id: id,
-      title: title ?? oldEvent.title,
-      description: description ?? oldEvent.description,
-      startDate: startDate ?? oldEvent.startDate,
-      endDate: endDate ?? oldEvent.endDate,
-      location: location ?? oldEvent.location,
-      availablePlaces: availablePlaces ?? oldEvent.availablePlaces,
-      price: price ?? oldEvent.price,
-      imageUrl: imageUrl ?? oldEvent.imageUrl,
+    final response = await _apiService.updateEvent(
+      id,
+      title: title,
+      description: description,
+      startDate: startDate,
+      endDate: endDate,
+      location: location,
+      availablePlaces: availablePlaces,
+      price: price,
+      imageUrl: imageUrl,
     );
 
-    _mockEvents[index] = updatedEvent;
-    return ApiResponse.success(updatedEvent);
+    if (response.success && response.data != null) {
+      final updatedEvent = Event.fromJson(response.data!);
+      return ApiResponse.success(updatedEvent);
+    }
+    return ApiResponse.error(response.message ?? 'Failed to update event');
   }
 
   Future<ApiResponse<bool>> deleteEvent(int id) async {
-    _mockEvents.removeWhere((e) => e.id == id);
-    return ApiResponse.success(true);
+    final response = await _apiService.deleteEvent(id);
+    if (response.success) {
+      return ApiResponse.success(true);
+    }
+    return ApiResponse.error(response.message ?? 'Failed to delete event');
   }
 
   Future<ApiResponse<bool>> joinEvent(int id) async {
-    final index = _mockEvents.indexWhere((e) => e.id == id);
-    if (index == -1) {
-      return ApiResponse.error('Event not found');
+    final response = await _apiService.joinEvent(id);
+    if (response.success) {
+      return ApiResponse.success(true);
     }
-
-    final event = _mockEvents[index];
-    if (event.availablePlaces <= 0) {
-      return ApiResponse.error('No available places');
-    }
-
-    _mockEvents[index] = Event(
-      id: event.id,
-      title: event.title,
-      description: event.description,
-      startDate: event.startDate,
-      endDate: event.endDate,
-      location: event.location,
-      availablePlaces: event.availablePlaces - 1,
-      price: event.price,
-      imageUrl: event.imageUrl,
-    );
-
-    return ApiResponse.success(true);
+    return ApiResponse.error(response.message ?? 'Failed to join event');
   }
 
   Future<ApiResponse<bool>> leaveEvent(int id) async {
-    final index = _mockEvents.indexWhere((e) => e.id == id);
-    if (index == -1) {
-      return ApiResponse.error('Event not found');
+    final response = await _apiService.leaveEvent(id);
+    if (response.success) {
+      return ApiResponse.success(true);
     }
-
-    final event = _mockEvents[index];
-    _mockEvents[index] = Event(
-      id: event.id,
-      title: event.title,
-      description: event.description,
-      startDate: event.startDate,
-      endDate: event.endDate,
-      location: event.location,
-      availablePlaces: event.availablePlaces + 1,
-      price: event.price,
-      imageUrl: event.imageUrl,
-    );
-
-    return ApiResponse.success(true);
+    return ApiResponse.error(response.message ?? 'Failed to leave event');
   }
 }

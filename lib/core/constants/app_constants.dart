@@ -1,6 +1,6 @@
 class AppConstants {
-  // API URLs removed as we're using mock data
-  static const String mockMode = 'MOCK_MODE';
+  // API URLs
+  static const String apiBaseUrl = 'http://localhost:8000';
 
   // Route Names
   static const String loginRoute = '/login';

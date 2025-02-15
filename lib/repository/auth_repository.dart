@@ -2,24 +2,31 @@ import '../model/api_response.dart';
 import '../model/user.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import '../core/services/api_service.dart';
 
 class AuthRepository {
   final SharedPreferences _prefs;
+  final ApiService _apiService;
   User? _currentUser;
   static const String _userKey = 'user_data';
 
   AuthRepository._({
     required SharedPreferences prefs,
-  }) : _prefs = prefs {
+    required ApiService apiService,
+  })  : _prefs = prefs,
+        _apiService = apiService {
     _loadStoredUser();
   }
 
   static Future<AuthRepository> create({
     SharedPreferences? prefs,
+    required String baseUrl,
   }) async {
     final sharedPrefs = prefs ?? await SharedPreferences.getInstance();
+    final apiService = ApiService(baseUrl: baseUrl);
     return AuthRepository._(
       prefs: sharedPrefs,
+      apiService: apiService,
     );
   }
 
@@ -37,29 +44,25 @@ class AuthRepository {
   }
 
   Future<ApiResponse<User>> login(String email, String password) async {
-    // Mock successful login for testing
-    final user = User(
-      id: 1,
-      email: email,
-      name: 'Test User',
-    );
-
-    await _saveAuthData(user);
-    return ApiResponse.success(user);
+    final response = await _apiService.login(email, password);
+    if (response.success && response.data != null) {
+      final user = User.fromJson(response.data!['user']);
+      await _saveAuthData(user);
+      return ApiResponse.success(user);
+    }
+    return ApiResponse.error(response.message ?? 'Login failed');
   }
 
   Future<ApiResponse<User>> register(
       String name, String email, String password) async {
-    // Mock successful registration
-    final user = User(
-      id: 1,
-      email: email,
-      name: name,
-    );
-
-    _currentUser = user;
-    await _saveUser(user);
-    return ApiResponse.success(user);
+    final response = await _apiService.register(name, email, password);
+    if (response.success && response.data != null) {
+      final user = User.fromJson(response.data!['user']);
+      _currentUser = user;
+      await _saveUser(user);
+      return ApiResponse.success(user);
+    }
+    return ApiResponse.error(response.message ?? 'Registration failed');
   }
 
   Future<ApiResponse<User>> updateProfile({
@@ -72,18 +75,24 @@ class AuthRepository {
       return ApiResponse.error('Not logged in');
     }
 
-    final updatedUser = User(
-      id: _currentUser!.id,
-      email: email ?? _currentUser!.email,
-      name: name ?? _currentUser!.name,
+    final response = await _apiService.updateProfile(
+      name: name,
+      email: email,
+      currentPassword: currentPassword,
+      newPassword: newPassword,
     );
 
-    _currentUser = updatedUser;
-    await _saveUser(updatedUser);
-    return ApiResponse.success(updatedUser);
+    if (response.success && response.data != null) {
+      final user = User.fromJson(response.data!['user']);
+      _currentUser = user;
+      await _saveUser(user);
+      return ApiResponse.success(user);
+    }
+    return ApiResponse.error(response.message ?? 'Profile update failed');
   }
 
   Future<bool> logout() async {
+    _apiService.clearToken();
     await _clearAuthData();
     return true;
   }
