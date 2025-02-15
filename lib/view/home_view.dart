@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'event_list_view.dart';
 import 'profile_view.dart';
+import 'dashboard_view.dart';
 
 class HomeView extends StatefulWidget {
   const HomeView({super.key});
@@ -13,6 +14,7 @@ class _HomeViewState extends State<HomeView> {
   int _currentIndex = 0;
   final List<Widget> _pages = [
     const EventListView(),
+    const DashboardView(),
     const ProfileView(),
   ];
 
@@ -31,6 +33,10 @@ class _HomeViewState extends State<HomeView> {
           NavigationDestination(
             icon: Icon(Icons.event),
             label: 'Events',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.dashboard),
+            label: 'Dashboard',
           ),
           NavigationDestination(
             icon: Icon(Icons.person),

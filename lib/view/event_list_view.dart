@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../model/event.dart';
 import '../repository/event_repository.dart';
+import '../repository/auth_repository.dart';
 import '../viewmodel/event_list_viewmodel.dart';
 import '../core/utils/app_utils.dart';
 import '../widgets/event_card.dart';
 import '../widgets/error_widget.dart';
 import '../widgets/loading_widget.dart';
 import 'create_event_view.dart';
+import 'event_detail_view.dart';
 
 class EventListView extends StatelessWidget {
   const EventListView({super.key});
@@ -23,12 +25,29 @@ class EventListView extends StatelessWidget {
   }
 }
 
-class EventListScreen extends StatelessWidget {
+class EventListScreen extends StatefulWidget {
   const EventListScreen({super.key});
+
+  @override
+  State<EventListScreen> createState() => _EventListScreenState();
+}
+
+class _EventListScreenState extends State<EventListScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Load events when the screen is first shown
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<EventListViewModel>(context, listen: false).loadEvents();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     final viewModel = Provider.of<EventListViewModel>(context);
+    final currentUserEmail = Provider.of<AuthRepository>(context, listen: false)
+        .currentUser!
+        .email;
 
     return Scaffold(
       appBar: AppBar(
@@ -53,46 +72,56 @@ class EventListScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: RefreshIndicator(
-        onRefresh: viewModel.loadEvents,
-        child: Builder(
-          builder: (context) {
-            if (viewModel.isLoading) {
-              return const LoadingView();
-            }
+      body: SafeArea(
+        child: RefreshIndicator(
+          onRefresh: viewModel.loadEvents,
+          child: Builder(
+            builder: (context) {
+              if (viewModel.isLoading) {
+                return const LoadingView();
+              }
 
-            if (viewModel.error != null) {
-              return ErrorView(
-                message: viewModel.error!,
-                onRetry: viewModel.loadEvents,
-              );
-            }
-
-            if (viewModel.events.isEmpty) {
-              return const Center(
-                child: Text('No events found'),
-              );
-            }
-
-            return ListView.builder(
-              padding: const EdgeInsets.all(8),
-              itemCount: viewModel.events.length,
-              itemBuilder: (context, index) {
-                final event = viewModel.events[index];
-                return EventCard(
-                  event: event,
-                  onJoin: () => _handleJoinEvent(context, viewModel, event),
-                  onLeave: () => _handleLeaveEvent(context, viewModel, event),
-                  onTap: () {
-                    // Navigate to event details
-                    // Navigator.push(context, MaterialPageRoute(
-                    //   builder: (_) => EventDetailView(eventId: event.id!),
-                    // ));
-                  },
+              if (viewModel.error != null) {
+                return ErrorView(
+                  message: viewModel.error!,
+                  onRetry: viewModel.loadEvents,
                 );
-              },
-            );
-          },
+              }
+
+              if (viewModel.events.isEmpty) {
+                return const Center(
+                  child: Text('No events found'),
+                );
+              }
+
+              return ListView.builder(
+                padding: const EdgeInsets.all(8),
+                itemCount: viewModel.events.length,
+                itemBuilder: (context, index) {
+                  final event = viewModel.events[index];
+                  return EventCard(
+                    event: event,
+                    currentUserEmail: currentUserEmail,
+                    onJoin: () => _handleJoinEvent(context, viewModel, event),
+                    onLeave: () => _handleLeaveEvent(context, viewModel, event),
+                    onTap: () async {
+                      final result = await Navigator.push<bool>(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => EventDetailView(eventId: event.id!),
+                        ),
+                      );
+                      
+                      // Refresh the list if the event was updated or deleted
+                      if (result == true) {
+                        viewModel.loadEvents();
+                      }
+                    },
+                  );
+                },
+              );
+            },
+          ),
         ),
       ),
     );

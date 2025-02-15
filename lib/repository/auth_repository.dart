@@ -21,9 +21,9 @@ class AuthRepository {
   static Future<AuthRepository> create({
     SharedPreferences? prefs,
     required String baseUrl,
+    required ApiService apiService,
   }) async {
     final sharedPrefs = prefs ?? await SharedPreferences.getInstance();
-    final apiService = ApiService(baseUrl: baseUrl);
     return AuthRepository._(
       prefs: sharedPrefs,
       apiService: apiService,

@@ -7,8 +7,9 @@ class Event {
   final String location;
   final int availablePlaces;
   final double price;
-  final String? imageUrl;
+  final String imageUrl;
   final bool? isJoined;
+  final Map<String, dynamic>? creator;
 
   Event({
     this.id,
@@ -19,8 +20,9 @@ class Event {
     required this.location,
     required this.availablePlaces,
     required this.price,
-    this.imageUrl,
+    required this.imageUrl,
     this.isJoined,
+    this.creator,
   });
 
   factory Event.fromJson(Map<String, dynamic> json) {
@@ -33,8 +35,9 @@ class Event {
       location: json['location'] as String,
       availablePlaces: json['available_places'] as int,
       price: (json['price'] as num).toDouble(),
-      imageUrl: json['image_url'] as String?,
+      imageUrl: json['image_url'] as String,
       isJoined: json['is_joined'] as bool?,
+      creator: json['creator'] as Map<String, dynamic>?,
     );
   }
 
@@ -48,8 +51,13 @@ class Event {
       'location': location,
       'available_places': availablePlaces,
       'price': price,
-      if (imageUrl != null) 'image_url': imageUrl,
+      'image_url': imageUrl,
+      if (creator != null) 'creator': creator,
     };
+  }
+
+  bool isCreator(String userEmail) {
+    return creator != null && creator!['email'] == userEmail;
   }
 
   Event copyWith({
@@ -62,6 +70,7 @@ class Event {
     double? price,
     String? imageUrl,
     bool? isJoined,
+    Map<String, dynamic>? creator,
   }) {
     return Event(
       id: id,
@@ -74,6 +83,7 @@ class Event {
       price: price ?? this.price,
       imageUrl: imageUrl ?? this.imageUrl,
       isJoined: isJoined ?? this.isJoined,
+      creator: creator ?? this.creator,
     );
   }
 } 

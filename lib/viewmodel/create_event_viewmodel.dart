@@ -107,8 +107,7 @@ class CreateEventViewModel extends ChangeNotifier {
         endDate: _endDate!,
         availablePlaces: int.parse(availablePlacesController.text),
         price: double.tryParse(priceController.text) ?? 0,
-        imageUrl:
-            imageUrlController.text.isEmpty ? null : imageUrlController.text,
+        imageUrl: imageUrlController.text.isEmpty ? 'https://picsum.photos/800/400' : imageUrlController.text,
       );
 
       final response = await _eventRepository.createEvent(event);

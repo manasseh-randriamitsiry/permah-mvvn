@@ -60,112 +60,89 @@ class ProfileScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (viewModel.error != null)
-              Container(
-                padding: const EdgeInsets.all(8),
-                margin: const EdgeInsets.only(bottom: 16),
-                color: theme.colorScheme.error.withOpacity(0.1),
-                child: Text(
-                  viewModel.error!,
-                  style: TextStyle(color: theme.colorScheme.error),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (viewModel.error != null)
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  margin: const EdgeInsets.only(bottom: 16),
+                  color: theme.colorScheme.error.withOpacity(0.1),
+                  child: Text(
+                    viewModel.error!,
+                    style: TextStyle(color: theme.colorScheme.error),
+                  ),
+                ),
+              const Text(
+                'Basic Information',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
-            const Text(
-              'Basic Information',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
+              const SizedBox(height: 16),
+              InputWidget(
+                icon: Icons.person_outline,
+                labelText: 'Full Name',
+                controller: viewModel.nameController,
+                type: TextInputType.name,
               ),
-            ),
-            const SizedBox(height: 16),
-            InputWidget(
-              icon: Icons.person_outline,
-              labelText: 'Full Name',
-              controller: viewModel.nameController,
-              type: TextInputType.name,
-            ),
-            const SizedBox(height: 16),
-            InputWidget(
-              icon: Icons.email_outlined,
-              labelText: 'Email',
-              controller: viewModel.emailController,
-              type: TextInputType.emailAddress,
-            ),
-            const SizedBox(height: 32),
-            ElevatedButton(
-              onPressed: viewModel.isLoading
-                  ? null
-                  : () async {
-                      final response = await viewModel.updateProfile();
-                      if (context.mounted) {
-                        if (response.success) {
-                          AppUtils.showSnackBar(
-                            context,
-                            'Profile updated successfully',
-                          );
-                        } else {
-                          AppUtils.showSnackBar(
-                            context,
-                            response.message ?? 'Failed to update profile',
-                          );
-                        }
-                      }
-                    },
-              child: const Text('UPDATE PROFILE'),
-            ),
-            const SizedBox(height: 32),
-            const Text(
-              'Change Password',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
+              const SizedBox(height: 16),
+              InputWidget(
+                icon: Icons.email_outlined,
+                labelText: 'Email',
+                controller: viewModel.emailController,
+                type: TextInputType.emailAddress,
               ),
-            ),
-            const SizedBox(height: 16),
-            InputPasswordWidget(
-              lblText: 'Current Password',
-              controller: viewModel.currentPasswordController,
-            ),
-            const SizedBox(height: 16),
-            InputPasswordWidget(
-              lblText: 'New Password',
-              controller: viewModel.newPasswordController,
-            ),
-            const SizedBox(height: 16),
-            InputPasswordWidget(
-              lblText: 'Confirm New Password',
-              controller: viewModel.confirmPasswordController,
-            ),
-            const SizedBox(height: 32),
-            ElevatedButton(
-              onPressed: viewModel.isLoading
-                  ? null
-                  : () async {
-                      final response = await viewModel.updateProfile(
-                        isChangingPassword: true,
-                      );
-                      if (context.mounted) {
-                        if (response.success) {
-                          AppUtils.showSnackBar(
-                            context,
-                            'Password updated successfully',
-                          );
-                        } else {
-                          AppUtils.showSnackBar(
-                            context,
-                            response.message ?? 'Failed to update password',
-                          );
-                        }
+              const SizedBox(height: 32),
+              const Text(
+                'Change Password',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 16),
+              InputPasswordWidget(
+                lblText: 'Current Password',
+                controller: viewModel.currentPasswordController,
+              ),
+              const SizedBox(height: 16),
+              InputPasswordWidget(
+                lblText: 'New Password',
+                controller: viewModel.newPasswordController,
+              ),
+              const SizedBox(height: 32),
+              if (viewModel.isLoading)
+                const Center(child: CircularProgressIndicator())
+              else
+                ElevatedButton(
+                  onPressed: () async {
+                    final response = await viewModel.updateProfile();
+                    if (context.mounted) {
+                      if (response.success) {
+                        AppUtils.showSnackBar(
+                          context,
+                          'Profile updated successfully',
+                        );
+                      } else {
+                        AppUtils.showSnackBar(
+                          context,
+                          response.message ?? 'Failed to update profile',
+                        );
                       }
-                    },
-              child: const Text('CHANGE PASSWORD'),
-            ),
-          ],
+                    }
+                  },
+                  child: const Padding(
+                    padding: EdgeInsets.all(12),
+                    child: Text('UPDATE PROFILE'),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );

@@ -73,4 +73,17 @@ class EventDetailViewModel extends ChangeNotifier {
       );
     }
   }
+
+  Future<ApiResponse<bool>> deleteEvent() async {
+    try {
+      final response = await _eventRepository.deleteEvent(eventId);
+      return response;
+    } catch (e) {
+      return ApiResponse(
+        success: false,
+        message: 'Failed to delete event: ${e.toString()}',
+        statusCode: 500,
+      );
+    }
+  }
 }

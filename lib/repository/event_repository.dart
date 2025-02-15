@@ -9,10 +9,22 @@ class EventRepository {
 
   Future<ApiResponse<List<Event>>> getEvents() async {
     final response = await _apiService.getEvents();
+    print('Event repository received response: ${response.success}, data: ${response.data}');
+    
     if (response.success && response.data != null) {
-      final events = response.data!.map((e) => Event.fromJson(e)).toList();
-      return ApiResponse.success(events);
+      try {
+        final events = response.data!.map((e) {
+          print('Processing event data: $e');
+          return Event.fromJson(e);
+        }).toList();
+        print('Successfully parsed ${events.length} events');
+        return ApiResponse.success(events);
+      } catch (e) {
+        print('Error parsing events: $e');
+        return ApiResponse.error('Error parsing events: ${e.toString()}');
+      }
     }
+    print('Failed to fetch events: ${response.message}');
     return ApiResponse.error(response.message ?? 'Failed to fetch events');
   }
 
@@ -64,7 +76,7 @@ class EventRepository {
       location: location,
       availablePlaces: availablePlaces,
       price: price,
-      imageUrl: imageUrl,
+      imageUrl: imageUrl.toString(),
     );
 
     if (response.success && response.data != null) {

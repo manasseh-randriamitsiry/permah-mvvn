@@ -4,6 +4,7 @@ import 'core/constants/app_constants.dart';
 import 'core/services/api_service.dart';
 import 'repository/auth_repository.dart';
 import 'repository/event_repository.dart';
+import 'viewmodel/event_list_viewmodel.dart';
 import 'view/login_view.dart';
 import 'view/home_view.dart';
 import 'view/register_view.dart';
@@ -17,6 +18,7 @@ void main() async {
   // Initialize AuthRepository
   final authRepository = await AuthRepository.create(
     baseUrl: AppConstants.apiBaseUrl,
+    apiService: apiService,
   );
 
   // Initialize EventRepository
@@ -44,6 +46,11 @@ class MyApp extends StatelessWidget {
       providers: [
         Provider<AuthRepository>.value(value: authRepository),
         Provider<EventRepository>.value(value: eventRepository),
+        ChangeNotifierProvider(
+          create: (context) => EventListViewModel(
+            eventRepository: eventRepository,
+          ),
+        ),
       ],
       child: MaterialApp(
         title: 'Permah',

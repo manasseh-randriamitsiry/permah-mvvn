@@ -3,6 +3,7 @@ import '../model/event.dart';
 
 class EventCard extends StatelessWidget {
   final Event event;
+  final String currentUserEmail;
   final VoidCallback onJoin;
   final VoidCallback onLeave;
   final VoidCallback onTap;
@@ -10,10 +11,16 @@ class EventCard extends StatelessWidget {
   const EventCard({
     super.key,
     required this.event,
+    required this.currentUserEmail,
     required this.onJoin,
     required this.onLeave,
     required this.onTap,
   });
+
+  bool _isValidImageUrl(String url) {
+    if (url.isEmpty) return false;
+    return url.startsWith('http://') || url.startsWith('https://');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -26,12 +33,24 @@ class EventCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            if (event.imageUrl != null)
+            if (_isValidImageUrl(event.imageUrl))
               Image.network(
-                event.imageUrl!,
+                event.imageUrl,
                 height: 200,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                errorBuilder: (context, error, stackTrace) {
+                  debugPrint('Error loading image: $error');
+                  return Container(
+                    height: 100,
+                    color: theme.colorScheme.surfaceVariant,
+                    child: Center(
+                      child: Icon(
+                        Icons.image_not_supported,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  );
+                },
               ),
             Padding(
               padding: const EdgeInsets.all(16),
@@ -42,11 +61,12 @@ class EventCard extends StatelessWidget {
                   const SizedBox(height: 16),
                   _EventDetails(event: event, theme: theme),
                   const SizedBox(height: 16),
-                  _EventActions(
-                    event: event,
-                    onJoin: onJoin,
-                    onLeave: onLeave,
-                  ),
+                  if (!event.isCreator(currentUserEmail))
+                    _EventActions(
+                      event: event,
+                      onJoin: onJoin,
+                      onLeave: onLeave,
+                    )
                 ],
               ),
             ),

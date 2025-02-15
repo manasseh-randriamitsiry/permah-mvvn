@@ -13,7 +13,12 @@ class ApiService {
 
   // Set the token after successful login
   void setToken(String token) {
-    _token = token;
+    // Ensure token is stored with 'Bearer ' prefix if it doesn't already have it
+    if (!token.startsWith('Bearer ')) {
+      _token = 'Bearer $token';
+    } else {
+      _token = token;
+    }
   }
 
   // Clear the token on logout
@@ -29,7 +34,12 @@ class ApiService {
     };
 
     if (requiresAuth && _token != null) {
-      headers['Authorization'] = 'Bearer $_token';
+      // Ensure token is properly formatted for Symfony JWT authentication
+      if (!_token!.startsWith('Bearer ')) {
+        headers['Authorization'] = 'Bearer $_token';
+      } else {
+        headers['Authorization'] = _token!;
+      }
     }
 
     return headers;
@@ -106,8 +116,9 @@ class ApiService {
 
           // Set token from response body
           final token = data['token'] as String;
+          print('Raw token from response: $token');
           setToken(token);
-          print('Token set from response body');
+          print('Token after setting: $_token');
 
           // Also check for cookie token
           final cookies = response.headers['set-cookie'];
@@ -119,9 +130,10 @@ class ApiService {
                 );
             if (bearerCookie.isNotEmpty) {
               final cookieToken = bearerCookie.split('=')[1];
-              print(
-                  'Found BEARER cookie token: ${cookieToken.substring(0, 20)}...');
-              // Note: We already have the token from response body, so we don't need to set it again
+              print('Found BEARER cookie token: $cookieToken');
+              // If we have a cookie token, use it instead of the body token
+              setToken(cookieToken);
+              print('Final token after cookie check: $_token');
             }
           }
 
@@ -250,21 +262,39 @@ class ApiService {
   // Event endpoints
   Future<ApiResponse<List<dynamic>>> getEvents() async {
     try {
+      final headers = _getHeaders();
+      print('Fetching events with headers: $headers');
+      
       final response = await http.get(
         Uri.parse('$baseUrl/api/events'),
-        headers: _getHeaders(),
+        headers: headers,
       );
 
-      final data = json.decode(response.body);
+      print('Get events response status: ${response.statusCode}');
+      print('Get events response body: ${response.body}');
+
       if (response.statusCode == 200) {
-        return ApiResponse.success(data as List<dynamic>);
+        final data = json.decode(response.body);
+        if (data is List) {
+          return ApiResponse.success(data);
+        } else {
+          print('Unexpected response format: $data');
+          return ApiResponse.error('Unexpected response format from server');
+        }
       }
 
-      return ApiResponse.error(
-        data['message'] ?? 'Failed to fetch events',
-        statusCode: response.statusCode,
-      );
+      try {
+        final data = json.decode(response.body);
+        return ApiResponse.error(
+          data['message'] ?? 'Failed to fetch events',
+          statusCode: response.statusCode,
+        );
+      } catch (e) {
+        print('Error parsing error response: $e');
+        return ApiResponse.error('Failed to fetch events');
+      }
     } catch (e) {
+      print('Get events error: $e');
       return ApiResponse.error('Network error: ${e.toString()}');
     }
   }
@@ -298,12 +328,16 @@ class ApiService {
     required String location,
     required int availablePlaces,
     required double price,
-    String? imageUrl,
+    required String imageUrl,
   }) async {
     try {
+      final headers = _getHeaders();
+      print('Creating event with headers: $headers');
+      print('Token value: $_token');
+      
       final response = await http.post(
         Uri.parse('$baseUrl/api/events'),
-        headers: _getHeaders(),
+        headers: headers,
         body: json.encode({
           'title': title,
           'description': description,
@@ -312,12 +346,15 @@ class ApiService {
           'location': location,
           'available_places': availablePlaces,
           'price': price,
-          if (imageUrl != null) 'image_url': imageUrl,
+          'image_url': imageUrl,
         }),
       );
 
+      print('Create event response status: ${response.statusCode}');
+      print('Create event response body: ${response.body}');
+
       final data = json.decode(response.body);
-      if (response.statusCode == 200) {
+      if (response.statusCode == 201) {
         return ApiResponse.success(data);
       }
 
@@ -326,6 +363,7 @@ class ApiService {
         statusCode: response.statusCode,
       );
     } catch (e) {
+      print('Create event error: $e');
       return ApiResponse.error('Network error: ${e.toString()}');
     }
   }
@@ -339,10 +377,12 @@ class ApiService {
     String? location,
     int? availablePlaces,
     double? price,
-    String? imageUrl,
+    required String imageUrl,
   }) async {
     try {
-      final body = <String, dynamic>{};
+      final body = <String, dynamic>{
+        'image_url': imageUrl,
+      };
       if (title != null) body['title'] = title;
       if (description != null) body['description'] = description;
       if (startDate != null)
@@ -351,7 +391,6 @@ class ApiService {
       if (location != null) body['location'] = location;
       if (availablePlaces != null) body['available_places'] = availablePlaces;
       if (price != null) body['price'] = price;
-      if (imageUrl != null) body['image_url'] = imageUrl;
 
       final response = await http.put(
         Uri.parse('$baseUrl/api/events/$id'),
@@ -380,15 +419,22 @@ class ApiService {
         headers: _getHeaders(),
       );
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 || response.statusCode == 204) {
         return ApiResponse.success(null);
       }
 
-      final data = json.decode(response.body);
-      return ApiResponse.error(
-        data['message'] ?? 'Failed to delete event',
-        statusCode: response.statusCode,
-      );
+      try {
+        final data = json.decode(response.body);
+        return ApiResponse.error(
+          data['message'] ?? 'Failed to delete event',
+          statusCode: response.statusCode,
+        );
+      } catch (e) {
+        return ApiResponse.error(
+          'Failed to delete event',
+          statusCode: response.statusCode,
+        );
+      }
     } catch (e) {
       return ApiResponse.error('Network error: ${e.toString()}');
     }
@@ -396,42 +442,64 @@ class ApiService {
 
   Future<ApiResponse<void>> joinEvent(int id) async {
     try {
+      print('Joining event with ID: $id');
+      print('Headers: ${_getHeaders()}');
+      
       final response = await http.post(
         Uri.parse('$baseUrl/api/events/$id/join'),
         headers: _getHeaders(),
       );
 
-      if (response.statusCode == 200) {
+      print('Join event response status: ${response.statusCode}');
+      print('Join event response body: ${response.body}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
         return ApiResponse.success(null);
       }
 
-      final data = json.decode(response.body);
-      return ApiResponse.error(
-        data['message'] ?? 'Failed to join event',
-        statusCode: response.statusCode,
-      );
+      try {
+        final data = json.decode(response.body);
+        final errorMessage = data['message'] ?? 'Failed to join event';
+        print('Error joining event: $errorMessage');
+        return ApiResponse.error(errorMessage, statusCode: response.statusCode);
+      } catch (e) {
+        print('Error parsing error response: $e');
+        return ApiResponse.error('Failed to join event', statusCode: response.statusCode);
+      }
     } catch (e) {
+      print('Network error joining event: $e');
       return ApiResponse.error('Network error: ${e.toString()}');
     }
   }
 
   Future<ApiResponse<void>> leaveEvent(int id) async {
     try {
+      print('Leaving event with ID: $id');
+      print('Headers: ${_getHeaders()}');
+      
       final response = await http.delete(
         Uri.parse('$baseUrl/api/events/$id/leave'),
         headers: _getHeaders(),
       );
 
-      if (response.statusCode == 200) {
+      print('Leave event response status: ${response.statusCode}');
+      print('Leave event response body: ${response.body}');
+
+      if (response.statusCode == 200 || response.statusCode == 204) {
         return ApiResponse.success(null);
       }
 
-      final data = json.decode(response.body);
-      return ApiResponse.error(
-        data['message'] ?? 'Failed to leave event',
-        statusCode: response.statusCode,
-      );
+      try {
+        final data = json.decode(response.body);
+        final errorMessage = data['message'] ?? 'Failed to leave event';
+        print('Error leaving event: $errorMessage');
+        return ApiResponse.error(errorMessage, statusCode: response.statusCode);
+      } catch (e) {
+        print('Error parsing error response: $e');
+        return ApiResponse.error('Failed to leave event', statusCode: response.statusCode);
+      }
     } catch (e) {
+      print('Network error leaving event: $e');
       return ApiResponse.error('Network error: ${e.toString()}');
     }
   }
