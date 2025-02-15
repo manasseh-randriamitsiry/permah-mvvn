@@ -112,13 +112,15 @@ class CreateEventViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
+      final totalPlaces = int.parse(availablePlacesController.text);
       final event = Event(
         title: titleController.text,
         description: descriptionController.text,
         location: locationController.text,
         startDate: _startDate!,
         endDate: _endDate!,
-        availablePlaces: int.parse(availablePlacesController.text),
+        totalPlaces: totalPlaces,
+        attendeesCount: 0,
         price: double.tryParse(priceController.text) ?? 0,
         imageUrl: imageUrlController.text.isEmpty ? 'https://picsum.photos/800/400' : imageUrlController.text,
       );

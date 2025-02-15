@@ -104,11 +104,19 @@ class _EditEventViewState extends State<EditEventView> {
     setState(() => _isLoading = true);
 
     try {
+      // Get the current participant count from the API
+      final repository = Provider.of<EventRepository>(context, listen: false);
+      final participantsResponse = await repository.getEventParticipants(widget.event.id!);
+      final currentParticipants = participantsResponse.success && participantsResponse.data != null
+          ? participantsResponse.data!.totalParticipants
+          : widget.event.attendeesCount;
+
       final updatedEvent = widget.event.copyWith(
         title: _titleController.text,
         description: _descriptionController.text,
         location: _locationController.text,
-        availablePlaces: int.parse(_availablePlacesController.text),
+        totalPlaces: int.parse(_availablePlacesController.text),
+        attendeesCount: currentParticipants,
         price: double.parse(_priceController.text),
         imageUrl: _imageUrlController.text.isEmpty ? 'https://picsum.photos/800/400' : _imageUrlController.text,
         startDate: _startDate,
@@ -123,7 +131,7 @@ class _EditEventViewState extends State<EditEventView> {
         title: updatedEvent.title,
         description: updatedEvent.description,
         location: updatedEvent.location,
-        availablePlaces: updatedEvent.availablePlaces,
+        availablePlaces: updatedEvent.totalPlaces,
         price: updatedEvent.price,
         imageUrl: updatedEvent.imageUrl,
         startDate: updatedEvent.startDate,

@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 import '../model/api_response.dart';
 import '../model/event.dart';
+import '../model/event_statistics.dart';
+import '../model/event_participants.dart';
 import '../repository/event_repository.dart';
 import '../core/services/notification_service.dart';
 
@@ -10,6 +12,11 @@ class EventListViewModel extends ChangeNotifier {
   bool _isLoading = false;
   String? _error;
   List<Event> _events = [];
+  List<Event> _upcomingEvents = [];
+  List<Event> _pastEvents = [];
+  List<Event> _searchResults = [];
+  EventStatistics? _eventStatistics;
+  EventParticipants? _eventParticipants;
 
   EventListViewModel({required EventRepository eventRepository})
       : _eventRepository = eventRepository;
@@ -17,6 +24,11 @@ class EventListViewModel extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
   List<Event> get events => List.unmodifiable(_events);
+  List<Event> get upcomingEvents => List.unmodifiable(_upcomingEvents);
+  List<Event> get pastEvents => List.unmodifiable(_pastEvents);
+  List<Event> get searchResults => List.unmodifiable(_searchResults);
+  EventStatistics? get eventStatistics => _eventStatistics;
+  EventParticipants? get eventParticipants => _eventParticipants;
 
   Future<void> loadEvents() async {
     _isLoading = true;
@@ -30,6 +42,21 @@ class EventListViewModel extends ChangeNotifier {
         _events = response.data ?? [];
         _error = null;
         print('EventListViewModel: Successfully loaded ${_events.length} events');
+        
+        // Update participant counts for all events
+        for (final event in _events) {
+          if (event.id != null) {
+            final participantsResponse = await _eventRepository.getEventParticipants(event.id!);
+            if (participantsResponse.success && participantsResponse.data != null) {
+              final index = _events.indexWhere((e) => e.id == event.id);
+              if (index != -1) {
+                _events[index] = event.copyWith(
+                  attendeesCount: participantsResponse.data!.totalParticipants,
+                );
+              }
+            }
+          }
+        }
         
         // Schedule notifications for all joined upcoming events
         for (final event in _events) {
@@ -50,6 +77,82 @@ class EventListViewModel extends ChangeNotifier {
     }
   }
 
+  Future<void> loadUpcomingEvents() async {
+    try {
+      final response = await _eventRepository.getUpcomingEvents();
+      if (response.success) {
+        _upcomingEvents = response.data ?? [];
+        notifyListeners();
+      }
+    } catch (e) {
+      print('Error loading upcoming events: $e');
+    }
+  }
+
+  Future<void> loadPastEvents() async {
+    try {
+      final response = await _eventRepository.getPastEvents();
+      if (response.success) {
+        _pastEvents = response.data ?? [];
+        notifyListeners();
+      }
+    } catch (e) {
+      print('Error loading past events: $e');
+    }
+  }
+
+  Future<void> searchEvents({
+    String? query,
+    DateTime? startDate,
+    DateTime? endDate,
+    String? location,
+    double? minPrice,
+    double? maxPrice,
+    bool? hasAvailablePlaces,
+  }) async {
+    try {
+      final response = await _eventRepository.searchEvents(
+        query: query,
+        startDate: startDate,
+        endDate: endDate,
+        location: location,
+        minPrice: minPrice,
+        maxPrice: maxPrice,
+        hasAvailablePlaces: hasAvailablePlaces,
+      );
+      if (response.success) {
+        _searchResults = response.data ?? [];
+        notifyListeners();
+      }
+    } catch (e) {
+      print('Error searching events: $e');
+    }
+  }
+
+  Future<void> loadEventStatistics(int eventId) async {
+    try {
+      final response = await _eventRepository.getEventStatistics(eventId);
+      if (response.success) {
+        _eventStatistics = response.data;
+        notifyListeners();
+      }
+    } catch (e) {
+      print('Error loading event statistics: $e');
+    }
+  }
+
+  Future<void> loadEventParticipants(int eventId) async {
+    try {
+      final response = await _eventRepository.getEventParticipants(eventId);
+      if (response.success) {
+        _eventParticipants = response.data;
+        notifyListeners();
+      }
+    } catch (e) {
+      print('Error loading event participants: $e');
+    }
+  }
+
   Future<void> refreshEvents() async {
     await loadEvents();
   }
@@ -59,23 +162,18 @@ class EventListViewModel extends ChangeNotifier {
       final response = await _eventRepository.joinEvent(eventId);
       // Update the UI if either the join was successful OR if the user has already joined
       if (response.success || response.message?.contains('Already joined') == true) {
-        // Update only the specific event in the list
-        final index = _events.indexWhere((e) => e.id == eventId);
-        if (index != -1) {
-          final event = _events[index];
-          _events[index] = event.copyWith(
-            isJoined: true,
-            availablePlaces: event.availablePlaces - 1,
-          );
-          
-          // Schedule notification for the joined event
-          if (event.startDate.isAfter(DateTime.now())) {
-            await _notificationService.scheduleEventNotification(event);
-          }
-          
-          notifyListeners();
+        // Get updated participant count for this event
+        final participantsResponse = await _eventRepository.getEventParticipants(eventId);
+        
+        // Refresh the events list to get updated attendee counts from the server
+        await loadEvents();
+        
+        // Schedule notification for the joined event
+        final event = _events.firstWhere((e) => e.id == eventId);
+        if (event.startDate.isAfter(DateTime.now())) {
+          await _notificationService.scheduleEventNotification(event);
         }
-        // Return success even if already joined
+        
         return ApiResponse.success(null);
       }
       return response;
@@ -93,21 +191,15 @@ class EventListViewModel extends ChangeNotifier {
       final response = await _eventRepository.leaveEvent(eventId);
       // Update the UI if either the leave was successful OR if the user wasn't joined
       if (response.success || response.message?.contains('not joined') == true) {
-        // Update only the specific event in the list
-        final index = _events.indexWhere((e) => e.id == eventId);
-        if (index != -1) {
-          final event = _events[index];
-          _events[index] = event.copyWith(
-            isJoined: false,
-            availablePlaces: event.availablePlaces + 1,
-          );
-          
-          // Cancel notification for the left event
-          await _notificationService.cancelEventNotification(eventId);
-          
-          notifyListeners();
-        }
-        // Return success even if not joined
+        // Get updated participant count for this event
+        final participantsResponse = await _eventRepository.getEventParticipants(eventId);
+        
+        // Refresh the events list to get updated attendee counts from the server
+        await loadEvents();
+        
+        // Cancel notification for the left event
+        await _notificationService.cancelEventNotification(eventId);
+        
         return ApiResponse.success(null);
       }
       return response;

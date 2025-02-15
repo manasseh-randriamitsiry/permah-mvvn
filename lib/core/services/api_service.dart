@@ -503,4 +503,162 @@ class ApiService {
       return ApiResponse.error('Network error: ${e.toString()}');
     }
   }
+
+  // New methods for event endpoints
+  Future<ApiResponse<List<dynamic>>> getUpcomingEvents() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/api/events/upcoming'),
+        headers: _getHeaders(),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data is List) {
+          return ApiResponse.success(data);
+        }
+        return ApiResponse.error('Unexpected response format from server');
+      }
+
+      try {
+        final data = json.decode(response.body);
+        return ApiResponse.error(
+          data['message'] ?? 'Failed to fetch upcoming events',
+          statusCode: response.statusCode,
+        );
+      } catch (e) {
+        return ApiResponse.error('Failed to fetch upcoming events');
+      }
+    } catch (e) {
+      return ApiResponse.error('Network error: ${e.toString()}');
+    }
+  }
+
+  Future<ApiResponse<List<dynamic>>> getPastEvents() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/api/events/past'),
+        headers: _getHeaders(),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data is List) {
+          return ApiResponse.success(data);
+        }
+        return ApiResponse.error('Unexpected response format from server');
+      }
+
+      try {
+        final data = json.decode(response.body);
+        return ApiResponse.error(
+          data['message'] ?? 'Failed to fetch past events',
+          statusCode: response.statusCode,
+        );
+      } catch (e) {
+        return ApiResponse.error('Failed to fetch past events');
+      }
+    } catch (e) {
+      return ApiResponse.error('Network error: ${e.toString()}');
+    }
+  }
+
+  Future<ApiResponse<List<dynamic>>> searchEvents({
+    String? query,
+    DateTime? startDate,
+    DateTime? endDate,
+    String? location,
+    double? minPrice,
+    double? maxPrice,
+    bool? hasAvailablePlaces,
+  }) async {
+    try {
+      final queryParams = <String, String>{};
+      if (query != null) queryParams['q'] = query;
+      if (startDate != null) queryParams['start_date'] = startDate.toUtc().toIso8601String();
+      if (endDate != null) queryParams['end_date'] = endDate.toUtc().toIso8601String();
+      if (location != null) queryParams['location'] = location;
+      if (minPrice != null) queryParams['min_price'] = minPrice.toString();
+      if (maxPrice != null) queryParams['max_price'] = maxPrice.toString();
+      if (hasAvailablePlaces != null) queryParams['has_available_places'] = hasAvailablePlaces ? '1' : '0';
+
+      final uri = Uri.parse('$baseUrl/api/events/search').replace(queryParameters: queryParams);
+      final response = await http.get(
+        uri,
+        headers: _getHeaders(),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data is List) {
+          return ApiResponse.success(data);
+        }
+        return ApiResponse.error('Unexpected response format from server');
+      }
+
+      try {
+        final data = json.decode(response.body);
+        return ApiResponse.error(
+          data['message'] ?? 'Failed to search events',
+          statusCode: response.statusCode,
+        );
+      } catch (e) {
+        return ApiResponse.error('Failed to search events');
+      }
+    } catch (e) {
+      return ApiResponse.error('Network error: ${e.toString()}');
+    }
+  }
+
+  Future<ApiResponse<Map<String, dynamic>>> getEventStatistics(int eventId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/api/events/$eventId/statistics'),
+        headers: _getHeaders(),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return ApiResponse.success(data);
+      }
+
+      try {
+        final data = json.decode(response.body);
+        return ApiResponse.error(
+          data['message'] ?? 'Failed to fetch event statistics',
+          statusCode: response.statusCode,
+        );
+      } catch (e) {
+        return ApiResponse.error('Failed to fetch event statistics');
+      }
+    } catch (e) {
+      return ApiResponse.error('Network error: ${e.toString()}');
+    }
+  }
+
+  Future<ApiResponse<Map<String, dynamic>>> getEventParticipants(int eventId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/api/events/$eventId/participants'),
+        headers: _getHeaders(),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return ApiResponse.success(data);
+      }
+
+      try {
+        final data = json.decode(response.body);
+        return ApiResponse.error(
+          data['message'] ?? 'Failed to fetch event participants',
+          statusCode: response.statusCode,
+        );
+      } catch (e) {
+        return ApiResponse.error('Failed to fetch event participants');
+      }
+    } catch (e) {
+      return ApiResponse.error('Network error: ${e.toString()}');
+    }
+  }
 }

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../model/event.dart';
+import '../view/event_detail_view.dart';
 
 class EventCard extends StatelessWidget {
   final Event event;
@@ -34,23 +36,32 @@ class EventCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             if (_isValidImageUrl(event.imageUrl))
-              Image.network(
-                event.imageUrl,
-                height: 200,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  debugPrint('Error loading image: $error');
-                  return Container(
+              Hero(
+                tag: 'event-image-${event.id}',
+                child: CachedNetworkImage(
+                  imageUrl: event.imageUrl,
+                  height: 200,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  placeholder: (context, url) => Container(
+                    height: 100,
+                    color: theme.colorScheme.surfaceVariant,
+                    child: const Center(
+                      child: CircularProgressIndicator(),
+                    ),
+                  ),
+                  errorWidget: (context, url, error) => Container(
                     height: 100,
                     color: theme.colorScheme.surfaceVariant,
                     child: Center(
                       child: Icon(
                         Icons.image_not_supported,
                         color: theme.colorScheme.onSurfaceVariant,
+                        size: 48,
                       ),
                     ),
-                  );
-                },
+                  ),
+                ),
               ),
             Padding(
               padding: const EdgeInsets.all(16),

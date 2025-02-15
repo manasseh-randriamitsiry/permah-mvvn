@@ -1,18 +1,56 @@
 import 'package:flutter/material.dart';
 import '../model/event.dart';
+import '../model/event_participants.dart';
+import '../repository/event_repository.dart';
+import 'package:provider/provider.dart';
 
-class EventStatistics extends StatelessWidget {
+class EventStatistics extends StatefulWidget {
   final List<Event> events;
+  final String currentUserEmail;
 
   const EventStatistics({
     super.key,
     required this.events,
+    required this.currentUserEmail,
   });
+
+  @override
+  State<EventStatistics> createState() => _EventStatisticsState();
+}
+
+class _EventStatisticsState extends State<EventStatistics> {
+  Map<int, int> participantCounts = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _loadParticipantCounts();
+  }
+
+  Future<void> _loadParticipantCounts() async {
+    final repository = Provider.of<EventRepository>(context, listen: false);
+    
+    for (final event in widget.events) {
+      if (event.id != null) {
+        try {
+          final response = await repository.getEventParticipants(event.id!);
+          if (response.success && response.data != null) {
+            print('Event ${event.id} has ${response.data!.totalParticipants} participants and price \$${event.price}');
+            setState(() {
+              participantCounts[event.id!] = response.data!.totalParticipants;
+            });
+          }
+        } catch (e) {
+          print('Error loading participants for event ${event.id}: $e');
+        }
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final now = DateTime.now();
-    final stats = _calculateStats(events, now);
+    final stats = _calculateStats(widget.events, now);
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -101,14 +139,23 @@ class EventStatistics extends StatelessWidget {
         pastEvents++;
       }
 
-      // Calculate participants and income
-      // If someone has joined the event (isJoined is true), count them
-      if (event.isJoined == true) {
-        totalParticipants += 1;
-        totalIncome += event.price;
+      // Calculate income only for events created by the current user
+      if (event.id != null && event.isCreator(widget.currentUserEmail)) {
+        final participantCount = participantCounts[event.id] ?? 0;
+        final eventIncome = participantCount * event.price;
+        print('Event ${event.id} income: $participantCount participants × \$${event.price} = \$${eventIncome} (owned by current user)');
+        
+        totalParticipants += participantCount;
+        totalIncome += eventIncome;
+      } else if (event.id != null) {
+        // Still print info for non-owned events but don't add to total
+        final participantCount = participantCounts[event.id] ?? 0;
+        final eventIncome = participantCount * event.price;
+        print('Event ${event.id} income: $participantCount participants × \$${event.price} = \$${eventIncome} (not owned by current user)');
       }
     }
 
+    print('Total income across owned events: \$${totalIncome}');
     return _EventStats(
       upcomingEvents: upcomingEvents,
       nextWeekEvents: nextWeekEvents,

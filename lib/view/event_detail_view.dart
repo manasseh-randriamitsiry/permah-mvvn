@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../model/event.dart';
 import '../viewmodel/event_detail_viewmodel.dart';
 import '../repository/event_repository.dart';
@@ -8,6 +9,7 @@ import '../widgets/loading_widget.dart';
 import '../widgets/error_widget.dart';
 import '../core/utils/app_utils.dart';
 import 'edit_event_view.dart';
+import 'event_participants_view.dart';
 
 class EventDetailView extends StatelessWidget {
   final int eventId;
@@ -134,25 +136,35 @@ class EventDetailScreen extends StatelessWidget {
                 if (_isValidImageUrl(event.imageUrl))
                   ClipRRect(
                     borderRadius: BorderRadius.circular(8),
-                    child: Image.network(
-                      event.imageUrl,
-                      width: double.infinity,
-                      height: 200,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        debugPrint('Error loading image: $error');
-                        return Container(
+                    child: Hero(
+                      tag: 'event-image-${event.id}',
+                      child: CachedNetworkImage(
+                        imageUrl: event.imageUrl,
+                        width: double.infinity,
+                        height: 200,
+                        fit: BoxFit.cover,
+                        placeholder: (context, url) => Container(
                           height: 200,
                           color: Theme.of(context).colorScheme.surfaceVariant,
-                          child: Center(
-                            child: Icon(
-                              Icons.image_not_supported,
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
-                              size: 48,
-                            ),
+                          child: const Center(
+                            child: CircularProgressIndicator(),
                           ),
-                        );
-                      },
+                        ),
+                        errorWidget: (context, url, error) {
+                          debugPrint('Error loading image: $error');
+                          return Container(
+                            height: 200,
+                            color: Theme.of(context).colorScheme.surfaceVariant,
+                            child: Center(
+                              child: Icon(
+                                Icons.image_not_supported,
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                size: 48,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
                     ),
                   ),
                 const SizedBox(height: 16),
@@ -206,6 +218,22 @@ class EventDetailScreen extends StatelessWidget {
                         _InfoRow(
                           icon: Icons.attach_money,
                           text: 'Price: \$${event.price.toStringAsFixed(2)}',
+                        ),
+                        const SizedBox(height: 16),
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            icon: const Icon(Icons.people_outline),
+                            label: const Text('View Participants'),
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => EventParticipantsView(eventId: event.id!),
+                                ),
+                              );
+                            },
+                          ),
                         ),
                       ],
                     ),
