@@ -3,13 +3,13 @@ import 'package:flutter/material.dart';
 class AuthHeader extends StatelessWidget {
   final String title;
   final String subtitle;
-  final IconData icon;
+  final IconData? icon;
 
   const AuthHeader({
     super.key,
     required this.title,
     required this.subtitle,
-    required this.icon,
+    this.icon,
   });
 
   @override

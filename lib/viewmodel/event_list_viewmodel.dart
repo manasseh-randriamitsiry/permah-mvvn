@@ -31,12 +31,13 @@ class EventListViewModel extends ChangeNotifier {
   EventParticipants? get eventParticipants => _eventParticipants;
 
   Future<void> loadEvents() async {
+    print('EventListViewModel: Starting loadEvents()');
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
-      print('EventListViewModel: Loading events...');
+      print('EventListViewModel: Making API call to load events...');
       final response = await _eventRepository.getEvents();
       if (response.success) {
         _events = response.data ?? [];
@@ -44,8 +45,10 @@ class EventListViewModel extends ChangeNotifier {
         print('EventListViewModel: Successfully loaded ${_events.length} events');
         
         // Update participant counts for all events
+        print('EventListViewModel: Updating participant counts...');
         for (final event in _events) {
           if (event.id != null) {
+            print('EventListViewModel: Loading participants for event ${event.id}');
             final participantsResponse = await _eventRepository.getEventParticipants(event.id!);
             if (participantsResponse.success && participantsResponse.data != null) {
               final index = _events.indexWhere((e) => e.id == event.id);
@@ -53,14 +56,19 @@ class EventListViewModel extends ChangeNotifier {
                 _events[index] = event.copyWith(
                   attendeesCount: participantsResponse.data!.totalParticipants,
                 );
+                print('EventListViewModel: Updated event ${event.id} with ${participantsResponse.data!.totalParticipants} participants');
               }
+            } else {
+              print('EventListViewModel: Failed to load participants for event ${event.id}: ${participantsResponse.message}');
             }
           }
         }
         
         // Schedule notifications for all joined upcoming events
+        print('EventListViewModel: Scheduling notifications for joined upcoming events...');
         for (final event in _events) {
           if (event.isJoined == true && event.startDate.isAfter(DateTime.now())) {
+            print('EventListViewModel: Scheduling notification for event ${event.id}');
             await _notificationService.scheduleEventNotification(event);
           }
         }
@@ -73,6 +81,7 @@ class EventListViewModel extends ChangeNotifier {
       print('EventListViewModel: Error loading events: $_error');
     } finally {
       _isLoading = false;
+      print('EventListViewModel: Finished loadEvents(), events: ${_events.length}, error: $_error');
       notifyListeners();
     }
   }
