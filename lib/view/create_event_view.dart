@@ -3,6 +3,9 @@ import 'package:provider/provider.dart';
 import '../repository/event_repository.dart';
 import '../viewmodel/create_event_viewmodel.dart';
 import '../core/utils/app_utils.dart';
+import '../widgets/custom_text_field.dart';
+import '../widgets/loading_button.dart';
+import '../widgets/message_widget.dart';
 
 class CreateEventView extends StatelessWidget {
   const CreateEventView({super.key});
@@ -85,102 +88,52 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              TextFormField(
+              CustomTextField(
                 controller: viewModel.titleController,
-                decoration: const InputDecoration(
-                  labelText: 'Title',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter a title';
-                  }
-                  return null;
-                },
+                label: 'Title',
+                icon: Icons.title,
               ),
               const SizedBox(height: 16),
-              TextFormField(
+              CustomTextField(
                 controller: viewModel.descriptionController,
-                decoration: const InputDecoration(
-                  labelText: 'Description',
-                  border: OutlineInputBorder(),
-                ),
-                maxLines: 3,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter a description';
-                  }
-                  return null;
-                },
+                label: 'Description',
+                icon: Icons.description,
+                keyboardType: TextInputType.multiline,
               ),
               const SizedBox(height: 16),
-              TextFormField(
+              CustomTextField(
                 controller: viewModel.locationController,
-                decoration: const InputDecoration(
-                  labelText: 'Location',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter a location';
-                  }
-                  return null;
-                },
+                label: 'Location',
+                icon: Icons.location_on,
               ),
               const SizedBox(height: 16),
               Row(
                 children: [
                   Expanded(
-                    child: TextFormField(
+                    child: CustomTextField(
                       controller: viewModel.availablePlacesController,
-                      decoration: const InputDecoration(
-                        labelText: 'Available Places',
-                        border: OutlineInputBorder(),
-                      ),
+                      label: 'Available Places',
+                      icon: Icons.people,
                       keyboardType: TextInputType.number,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter available places';
-                        }
-                        final places = int.tryParse(value);
-                        if (places == null || places < 1) {
-                          return 'Please enter a valid number';
-                        }
-                        return null;
-                      },
                     ),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
-                    child: TextFormField(
+                    child: CustomTextField(
                       controller: viewModel.priceController,
-                      decoration: const InputDecoration(
-                        labelText: 'Price',
-                        border: OutlineInputBorder(),
-                        prefixText: '\$',
-                      ),
+                      label: 'Price',
+                      icon: Icons.attach_money,
                       keyboardType: TextInputType.number,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter a price';
-                        }
-                        final price = double.tryParse(value);
-                        if (price == null || price < 0) {
-                          return 'Please enter a valid price';
-                        }
-                        return null;
-                      },
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 16),
-              TextFormField(
+              CustomTextField(
                 controller: viewModel.imageUrlController,
-                decoration: const InputDecoration(
-                  labelText: 'Image URL (optional)',
-                  border: OutlineInputBorder(),
-                ),
+                label: 'Image URL (optional)',
+                icon: Icons.image,
+                keyboardType: TextInputType.url,
               ),
               const SizedBox(height: 16),
               ListTile(
@@ -203,49 +156,39 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                 trailing: const Icon(Icons.calendar_today),
                 onTap: () => _selectDate(context, false),
               ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.all(16),
-                  ),
-                  onPressed: viewModel.isLoading
-                      ? null
-                      : () async {
-                          if (_formKey.currentState!.validate()) {
-                            final response = await viewModel.createEvent();
-                            if (mounted) {
-                              if (response.success) {
-                                // Reset form and show success message
-                                viewModel.resetForm();
-                                if (context.mounted) {
-                                  AppUtils.showSnackBar(
-                                    context,
-                                    'Event created successfully',
-                                  );
-                                  // Navigate back to events list using Navigator
-                                  Navigator.of(context).pop(true);
-                                }
-                              } else {
-                                AppUtils.showSnackBar(
-                                  context,
-                                  response.message ?? 'Failed to create event',
-                                );
-                              }
-                            }
-                          }
-                        },
-                  child: viewModel.isLoading
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                          ),
-                        )
-                      : const Text('CREATE EVENT'),
+              if (viewModel.error != null) ...[
+                const SizedBox(height: 16),
+                MessageWidget(
+                  message: viewModel.error!,
+                  type: MessageType.error,
                 ),
+              ],
+              const SizedBox(height: 24),
+              LoadingButton(
+                isLoading: viewModel.isLoading,
+                text: 'CREATE EVENT',
+                onPressed: () async {
+                  if (_formKey.currentState!.validate()) {
+                    final response = await viewModel.createEvent();
+                    if (mounted) {
+                      if (response.success) {
+                        viewModel.resetForm();
+                        if (context.mounted) {
+                          AppUtils.showSnackBar(
+                            context,
+                            'Event created successfully',
+                          );
+                          Navigator.of(context).pop(true);
+                        }
+                      } else {
+                        AppUtils.showSnackBar(
+                          context,
+                          response.message ?? 'Failed to create event',
+                        );
+                      }
+                    }
+                  }
+                },
               ),
             ],
           ),

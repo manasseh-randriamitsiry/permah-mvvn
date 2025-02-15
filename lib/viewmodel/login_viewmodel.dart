@@ -46,9 +46,9 @@ class LoginViewModel extends ChangeNotifier {
     return true;
   }
 
-  Future<bool> login() async {
+  Future<ApiResponse<User>> login() async {
     if (!validateInputs()) {
-      return false;
+      return ApiResponse.error(_error ?? 'Validation failed');
     }
 
     setLoading(true);
@@ -64,12 +64,12 @@ class LoginViewModel extends ChangeNotifier {
       if (response.success && response.data != null) {
         _currentUser = response.data;
         notifyListeners();
-        return true;
+        return response;
       }
 
       setError(
           response.message ?? 'Login failed. Please check your credentials.');
-      return false;
+      return response;
     } catch (e) {
       setLoading(false);
       if (e.toString().contains('SocketException') ||
@@ -81,7 +81,7 @@ class LoginViewModel extends ChangeNotifier {
       } else {
         setError('An unexpected error occurred: ${e.toString()}');
       }
-      return false;
+      return ApiResponse.error(_error ?? e.toString());
     }
   }
 
