@@ -1,23 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../core/theme/theme_provider.dart';
 import '../repository/auth_repository.dart';
+import '../core/constants/app_constants.dart';
 
 class MenuWidget extends StatelessWidget {
-  final ValueChanged<int> onPageChanged;
   final int currentIndex;
+  final Function(int) onPageChanged;
 
   const MenuWidget({
     super.key,
-    required this.onPageChanged,
     required this.currentIndex,
+    required this.onPageChanged,
   });
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final themeProvider = Provider.of<ThemeProvider>(context);
     final user = Provider.of<AuthRepository>(context).currentUser;
 
     return Scaffold(
-      backgroundColor: Theme.of(context).primaryColor,
+      backgroundColor: theme.primaryColor,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -29,86 +33,88 @@ class MenuWidget extends StatelessWidget {
                 children: [
                   CircleAvatar(
                     radius: 32,
-                    backgroundColor: Colors.white,
+                    backgroundColor: theme.colorScheme.onPrimary,
                     child: Text(
-                      user?.name.substring(0, 1).toUpperCase() ?? 'U',
+                      user?.name[0].toUpperCase() ?? 'U',
                       style: TextStyle(
-                        fontSize: 32,
-                        color: Theme.of(context).primaryColor,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: theme.primaryColor,
                       ),
                     ),
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    user?.name ?? 'User',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
+                    user?.name ?? '',
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      color: theme.colorScheme.onPrimary,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   Text(
-                    user?.email ?? 'email@example.com',
-                    style: const TextStyle(
-                      color: Colors.white70,
-                      fontSize: 14,
+                    user?.email ?? '',
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      color: theme.colorScheme.onPrimary.withOpacity(0.8),
                     ),
                   ),
                 ],
               ),
             ),
             const Divider(color: Colors.white24),
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.all(16),
-                children: [
-                  _MenuItem(
-                    icon: Icons.event,
-                    title: 'Events',
-                    isSelected: currentIndex == 0,
-                    onTap: () => onPageChanged(0),
-                  ),
-                  _MenuItem(
-                    icon: Icons.dashboard,
-                    title: 'Dashboard',
-                    isSelected: currentIndex == 1,
-                    onTap: () => onPageChanged(1),
-                  ),
-                  _MenuItem(
-                    icon: Icons.person,
-                    title: 'Profile',
-                    isSelected: currentIndex == 2,
-                    onTap: () => onPageChanged(2),
-                  ),
-                  _MenuItem(
-                    icon: Icons.add,
-                    title: 'Create event',
-                    isSelected: currentIndex == 3,
-                    onTap: () => onPageChanged(3),
-                  ),
-                ],
-              ),
+            _MenuItem(
+              icon: Icons.event,
+              title: 'Events',
+              isSelected: currentIndex == 0,
+              onTap: () => onPageChanged(0),
+            ),
+            _MenuItem(
+              icon: Icons.dashboard,
+              title: 'Dashboard',
+              isSelected: currentIndex == 1,
+              onTap: () => onPageChanged(1),
+            ),
+            _MenuItem(
+              icon: Icons.person,
+              title: 'Profile',
+              isSelected: currentIndex == 2,
+              onTap: () => onPageChanged(2),
+            ),
+            _MenuItem(
+              icon: Icons.add_circle_outline,
+              title: 'Create Event',
+              isSelected: false,
+              onTap: () => onPageChanged(3),
             ),
             const Divider(color: Colors.white24),
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: _MenuItem(
-                icon: Icons.logout,
-                title: 'Logout',
-                onTap: () async {
-                  final success = await Provider.of<AuthRepository>(
-                    context,
-                    listen: false,
-                  ).logout();
-                  if (success && context.mounted) {
-                    Navigator.of(context).pushNamedAndRemoveUntil(
-                      '/login',
-                      (route) => false,
-                    );
-                  }
-                },
-              ),
+            _MenuItem(
+              icon: themeProvider.themeMode == ThemeMode.dark
+                  ? Icons.light_mode
+                  : Icons.dark_mode,
+              title: themeProvider.themeMode == ThemeMode.dark
+                  ? 'Light Mode'
+                  : 'Dark Mode',
+              isSelected: false,
+              onTap: () => themeProvider.toggleTheme(),
             ),
+            const Spacer(),
+            _MenuItem(
+              icon: Icons.logout,
+              title: 'Logout',
+              isSelected: false,
+              onTap: () async {
+                final authRepository = Provider.of<AuthRepository>(
+                  context,
+                  listen: false,
+                );
+                await authRepository.logout();
+                if (context.mounted) {
+                  Navigator.of(context).pushReplacementNamed(
+                    AppConstants.loginRoute,
+                  );
+                }
+              },
+            ),
+            const SizedBox(height: 24),
           ],
         ),
       ),
@@ -119,35 +125,39 @@ class MenuWidget extends StatelessWidget {
 class _MenuItem extends StatelessWidget {
   final IconData icon;
   final String title;
-  final VoidCallback onTap;
   final bool isSelected;
+  final VoidCallback onTap;
 
   const _MenuItem({
     required this.icon,
     required this.title,
+    required this.isSelected,
     required this.onTap,
-    this.isSelected = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      leading: Icon(
-        icon,
-        color: isSelected ? Colors.white : Colors.white70,
-      ),
-      title: Text(
-        title,
-        style: TextStyle(
-          color: isSelected ? Colors.white : Colors.white70,
-          fontSize: 16,
+    final theme = Theme.of(context);
+
+    return Material(
+      color: Colors.transparent,
+      child: ListTile(
+        leading: Icon(
+          icon,
+          color: isSelected
+              ? theme.colorScheme.onPrimary
+              : theme.colorScheme.onPrimary.withOpacity(0.7),
         ),
-      ),
-      onTap: onTap,
-      selected: isSelected,
-      selectedTileColor: Colors.white.withOpacity(0.1),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
+        title: Text(
+          title,
+          style: theme.textTheme.titleMedium?.copyWith(
+            color: isSelected
+                ? theme.colorScheme.onPrimary
+                : theme.colorScheme.onPrimary.withOpacity(0.7),
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          ),
+        ),
+        onTap: onTap,
       ),
     );
   }

@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import '../repository/auth_repository.dart';
 import '../viewmodel/profile_viewmodel.dart';
 import '../widgets/gradient_background.dart';
-import '../widgets/auth_header.dart';
 import '../widgets/auth_form_container.dart';
 import '../widgets/custom_text_field.dart';
 import '../widgets/message_widget.dart';
@@ -55,10 +54,40 @@ class ProfileScreen extends StatelessWidget {
           child: SafeArea(
             child: Column(
               children: [
-                AuthHeader(
-                  title: 'Profile',
-                  subtitle: 'Update your information',
+                const SizedBox(height: 24),
+                Center(
+                  child: Column(
+                    children: [
+                      CircleAvatar(
+                        radius: 40,
+                        backgroundColor: theme.colorScheme.onPrimary,
+                        child: Text(
+                          viewModel.user?.name[0].toUpperCase() ?? 'U',
+                          style: TextStyle(
+                            fontSize: 32,
+                            fontWeight: FontWeight.bold,
+                            color: theme.colorScheme.primary,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        viewModel.user?.name ?? '',
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                          color: theme.colorScheme.onPrimary,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        viewModel.user?.email ?? '',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          color: theme.colorScheme.onPrimary.withOpacity(0.8),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
+                const SizedBox(height: 32),
                 AuthFormContainer(
                   title: 'Basic Information',
                   children: [

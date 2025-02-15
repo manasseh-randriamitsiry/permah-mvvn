@@ -5,6 +5,8 @@ import 'profile_view.dart';
 import 'dashboard_view.dart';
 import 'create_event_view.dart';
 import '../widgets/menu_widget.dart';
+import 'package:provider/provider.dart';
+import '../core/theme/theme_provider.dart';
 
 class HomeView extends StatefulWidget {
   const HomeView({super.key});
@@ -74,6 +76,9 @@ class _HomeViewState extends State<HomeView> {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final theme = Theme.of(context);
+
     return ZoomDrawer(
       controller: _drawerController,
       menuScreen: MenuWidget(
