@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../core/services/api_service.dart';
 import '../repository/auth_repository.dart';
 import '../viewmodel/login_viewmodel.dart';
 import '../core/constants/app_constants.dart';
@@ -18,6 +19,7 @@ class LoginView extends StatelessWidget {
     return ChangeNotifierProvider(
       create: (_) => LoginViewModel(
         Provider.of<AuthRepository>(context, listen: false),
+        Provider.of<ApiService>(context, listen: false),
       ),
       child: const LoginScreen(),
     );
@@ -38,6 +40,103 @@ class LoginScreen extends StatelessWidget {
         elevation: 0,
         duration: const Duration(seconds: 3),
       ),
+    );
+  }
+
+  void _showIpHelpDialog(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    final maxWidth = size.width * 0.9 < 400 ? size.width * 0.9 : 400.0;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Wrap(
+          alignment: WrapAlignment.start,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 8,
+          children: [
+            Icon(
+              Icons.help_outline,
+              color: Theme.of(context).primaryColor,
+            ),
+            const Text('How to Find Your IP Address'),
+          ],
+        ),
+        contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+        content: Container(
+          width: maxWidth,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildOSInstructions(
+                  context,
+                  'Windows',
+                  '1. Open Command Prompt (cmd)\n'
+                  '2. Type "ipconfig"\n'
+                  '3. Look for "IPv4 Address" under your network adapter',
+                ),
+                const SizedBox(height: 16),
+                _buildOSInstructions(
+                  context,
+                  'Mac',
+                  '1. Open Terminal\n'
+                  '2. Type "ifconfig | grep inet"\n'
+                  '3. Look for "inet" followed by your IP',
+                ),
+                const SizedBox(height: 16),
+                _buildOSInstructions(
+                  context,
+                  'Linux',
+                  '1. Open Terminal\n'
+                  '2. Type "ip addr" or "ifconfig"\n'
+                  '3. Look for "inet" followed by your IP',
+                ),
+                const SizedBox(height: 16),
+                const Divider(),
+                const SizedBox(height: 8),
+                Text(
+                  'Note:',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.error,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  '• Make sure both devices are on the same network\n'
+                  '• The server must be running on port 8000\n'
+                  '• Format: xxx.xxx.xxx.xxx:8000',
+                ),
+                const SizedBox(height: 8),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Got it'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOSInstructions(BuildContext context, String os, String instructions) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '$os:',
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
+        const SizedBox(height: 4),
+        Text(
+          instructions,
+          style: Theme.of(context).textTheme.bodyMedium,
+        ),
+      ],
     );
   }
 
@@ -74,11 +173,39 @@ class LoginScreen extends StatelessWidget {
                       isPassword: true,
                     ),
                     const SizedBox(height: 24),
-                    if (viewModel.error != null)
-                      MessageWidget(
-                        message: viewModel.error!,
-                        type: MessageType.error,
+                    ExpansionTile(
+                      title: Text(
+                        'Advanced Settings',
+                        style: theme.textTheme.titleMedium,
                       ),
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: CustomTextField(
+                                controller: viewModel.customIpController,
+                                label: 'Custom IP Address (Optional)',
+                                icon: Icons.computer,
+                                keyboardType: TextInputType.text,
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.help_outline),
+                              onPressed: () => _showIpHelpDialog(context),
+                              tooltip: 'How to find your IP address',
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Leave empty to use default server',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.hintColor,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+                    ),
                     const SizedBox(height: 24),
                     LoadingButton(
                       isLoading: viewModel.isLoading,

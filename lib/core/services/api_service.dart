@@ -3,13 +3,17 @@ import 'dart:async';
 import 'package:http/http.dart' as http;
 import '../constants/app_constants.dart';
 import '../../model/api_response.dart';
+import 'api_config_service.dart';
 
 class ApiService {
-  final String baseUrl;
+  final ApiConfigService _configService;
   String? _token;
   final Duration timeout = const Duration(seconds: 30);
 
-  ApiService({required this.baseUrl});
+  ApiService({required ApiConfigService configService}) 
+    : _configService = configService;
+
+  String get baseUrl => _configService.baseUrl;
 
   // Set the token after successful login
   void setToken(String token) {

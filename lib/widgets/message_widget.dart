@@ -1,10 +1,6 @@
 import 'package:flutter/material.dart';
 
-enum MessageType {
-  success,
-  warning,
-  error,
-}
+enum MessageType { error, success, warning, info }
 
 class MessageWidget extends StatelessWidget {
   final String message;
@@ -18,73 +14,62 @@ class MessageWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    
+    Color backgroundColor;
+    Color textColor = Colors.white;
+    IconData icon;
+
+    switch (type) {
+      case MessageType.error:
+        backgroundColor = Colors.red.shade600;
+        icon = Icons.error_outline;
+        break;
+      case MessageType.success:
+        backgroundColor = Colors.green.shade600;
+        icon = Icons.check_circle_outline;
+        break;
+      case MessageType.warning:
+        backgroundColor = Colors.orange.shade600;
+        icon = Icons.warning_amber_outlined;
+        break;
+      case MessageType.info:
+        backgroundColor = Colors.blue.shade600;
+        icon = Icons.info_outline;
+        break;
+    }
+
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: _getBackgroundColor(context),
+        color: backgroundColor,
         borderRadius: BorderRadius.circular(8),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            _getIcon(),
-            color: _getIconColor(context),
-          ),
+          Icon(icon, color: textColor),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
               message,
-              style: TextStyle(
-                color: _getTextColor(context),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: textColor,
+                fontWeight: FontWeight.w500,
               ),
+              overflow: TextOverflow.visible,
+              softWrap: true,
             ),
           ),
         ],
       ),
     );
-  }
-
-  Color _getBackgroundColor(BuildContext context) {
-    switch (type) {
-      case MessageType.success:
-        return Colors.green.withOpacity(0.1);
-      case MessageType.warning:
-        return Colors.amber.withOpacity(0.1);
-      case MessageType.error:
-        return Theme.of(context).colorScheme.error.withOpacity(0.1);
-    }
-  }
-
-  Color _getIconColor(BuildContext context) {
-    switch (type) {
-      case MessageType.success:
-        return Colors.green;
-      case MessageType.warning:
-        return Colors.amber;
-      case MessageType.error:
-        return Theme.of(context).colorScheme.error;
-    }
-  }
-
-  Color _getTextColor(BuildContext context) {
-    switch (type) {
-      case MessageType.success:
-        return Colors.green.shade700;
-      case MessageType.warning:
-        return Colors.amber.shade900;
-      case MessageType.error:
-        return Theme.of(context).colorScheme.error;
-    }
-  }
-
-  IconData _getIcon() {
-    switch (type) {
-      case MessageType.success:
-        return Icons.check_circle_outline;
-      case MessageType.warning:
-        return Icons.warning_amber_outlined;
-      case MessageType.error:
-        return Icons.error_outline;
-    }
   }
 } 
