@@ -61,11 +61,22 @@ class MenuWidget extends StatelessWidget {
               ),
             ),
             const Divider(color: Colors.white24),
-            _MenuItem(
-              icon: Icons.event,
-              title: 'Events',
-              isSelected: currentIndex == 0,
-              onTap: () => onPageChanged(0),
+            ListTile(
+              leading: const Icon(Icons.event, color: Colors.white),
+              title: const Text('Events', style: TextStyle(color: Colors.white)),
+              selected: currentIndex == 0,
+              onTap: () {
+                onPageChanged(0);
+                Navigator.pop(context);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.event_note, color: Colors.white),
+              title: const Text('My Events', style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(context, '/my-events');
+              },
             ),
             _MenuItem(
               icon: Icons.dashboard,

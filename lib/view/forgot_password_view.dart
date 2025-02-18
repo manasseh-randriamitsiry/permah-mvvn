@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../core/services/api_service.dart';
 import '../repository/auth_repository.dart';
-import '../viewmodel/login_viewmodel.dart';
+import '../viewmodel/forgot_password_viewmodel.dart';
 import '../core/constants/app_constants.dart';
 import '../widgets/auth_gradient_background.dart';
 import '../widgets/gradient_background.dart';
@@ -11,25 +11,24 @@ import '../widgets/auth_form_container.dart';
 import '../widgets/custom_text_field.dart';
 import '../widgets/message_widget.dart';
 import '../widgets/loading_button.dart';
-import '../widgets/server_settings_dialog.dart';
 
-class LoginView extends StatelessWidget {
-  const LoginView({super.key});
+class ForgotPasswordView extends StatelessWidget {
+  const ForgotPasswordView({super.key});
 
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      create: (_) => LoginViewModel(
+      create: (_) => ForgotPasswordViewModel(
         Provider.of<AuthRepository>(context, listen: false),
         Provider.of<ApiService>(context, listen: false),
       ),
-      child: const LoginScreen(),
+      child: const ForgotPasswordScreen(),
     );
   }
 }
 
-class LoginScreen extends StatelessWidget {
-  const LoginScreen({super.key});
+class ForgotPasswordScreen extends StatelessWidget {
+  const ForgotPasswordScreen({super.key});
 
   void _showMessage(BuildContext context, String message, MessageType type) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -45,16 +44,9 @@ class LoginScreen extends StatelessWidget {
     );
   }
 
-  void _showServerSettings(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => const ServerSettingsDialog(),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    final viewModel = Provider.of<LoginViewModel>(context);
+    final viewModel = Provider.of<ForgotPasswordViewModel>(context);
 
     return Scaffold(
       body: AuthGradientBackground(
@@ -62,50 +54,18 @@ class LoginScreen extends StatelessWidget {
           child: Column(
             children: [
               const AuthHeader(
-                icon: Icons.event,
-                title: 'Welcome Back',
-                subtitle: 'Sign in to continue',
+                icon: Icons.lock_reset,
+                title: 'Forgot Password',
+                subtitle: 'Enter your email to reset password',
               ),
               AuthFormContainer(
-                title: 'Login',
-                titleTrailing: IconButton(
-                  icon: const Icon(
-                    Icons.settings,
-                    size: 24,
-                    color: Colors.black54,
-                  ),
-                  onPressed: () => _showServerSettings(context),
-                  tooltip: 'Server Settings',
-                ),
+                title: 'Reset Password',
                 children: [
                   CustomTextField(
                     controller: viewModel.emailController,
                     label: 'Email',
                     icon: Icons.email_outlined,
                     keyboardType: TextInputType.emailAddress,
-                  ),
-                  CustomTextField(
-                    controller: viewModel.passwordController,
-                    label: 'Password',
-                    icon: Icons.lock_outline,
-                    isPassword: true,
-                  ),
-                  const SizedBox(height: 16),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton(
-                      onPressed: () {
-                        Navigator.pushNamed(context, AppConstants.forgotPasswordRoute);
-                      },
-                      child: const Text(
-                        'Forgot Password?',
-                        style: TextStyle(
-                          color: Color(0xFF673AB7),
-                          fontWeight: FontWeight.w600,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ),
                   ),
                   const Spacer(),
                   if (viewModel.error != null)
@@ -115,19 +75,26 @@ class LoginScreen extends StatelessWidget {
                     ),
                   LoadingButton(
                     isLoading: viewModel.isLoading,
-                    text: 'LOGIN',
+                    text: 'SEND RESET CODE',
                     onPressed: () async {
                       if (!viewModel.validateInputs()) {
                         return;
                       }
-                      final response = await viewModel.login();
+                      final response = await viewModel.requestPasswordReset();
                       if (!context.mounted) return;
                       
                       if (response.success) {
-                        Navigator.of(context)
-                            .pushReplacementNamed(AppConstants.homeRoute);
+                        _showMessage(
+                          context,
+                          'Reset code sent successfully. Please check your email.',
+                          MessageType.success,
+                        );
+                        Navigator.of(context).pushNamed(
+                          AppConstants.verifyResetCodeRoute,
+                          arguments: viewModel.emailController.text,
+                        );
                       } else {
-                        final message = response.message ?? 'Login failed';
+                        final message = response.message ?? 'Failed to send reset code';
                         _showMessage(context, message, MessageType.error);
                       }
                     },
@@ -137,7 +104,7 @@ class LoginScreen extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       const Text(
-                        'Don\'t have an account? ',
+                        'Remember your password? ',
                         style: TextStyle(
                           color: Colors.black54,
                           fontSize: 16,
@@ -145,10 +112,10 @@ class LoginScreen extends StatelessWidget {
                       ),
                       TextButton(
                         onPressed: () {
-                          Navigator.pushNamed(context, AppConstants.signupRoute);
+                          Navigator.pop(context);
                         },
                         child: const Text(
-                          'Sign Up',
+                          'Login',
                           style: TextStyle(
                             color: Color(0xFF673AB7),
                             fontWeight: FontWeight.w600,
@@ -166,4 +133,4 @@ class LoginScreen extends StatelessWidget {
       ),
     );
   }
-}
+} 

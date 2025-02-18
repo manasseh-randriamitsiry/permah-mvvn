@@ -7,11 +7,13 @@ import 'package:provider/provider.dart';
 class EventStatistics extends StatefulWidget {
   final List<Event> events;
   final String currentUserEmail;
+  final EventRepository eventRepository;
 
   const EventStatistics({
     super.key,
     required this.events,
     required this.currentUserEmail,
+    required this.eventRepository,
   });
 
   @override
@@ -24,25 +26,22 @@ class _EventStatisticsState extends State<EventStatistics> {
   @override
   void initState() {
     super.initState();
-    _loadParticipantCounts();
+    _fetchParticipantCounts();
   }
 
-  Future<void> _loadParticipantCounts() async {
-    final repository = Provider.of<EventRepository>(context, listen: false);
-    
+  Future<void> _fetchParticipantCounts() async {
     for (final event in widget.events) {
-      if (event.id != null) {
-        try {
-          final response = await repository.getEventParticipants(event.id!);
-          if (response.success && response.data != null) {
-            print('Event ${event.id} has ${response.data!.totalParticipants} participants and price \$${event.price}');
-            setState(() {
-              participantCounts[event.id!] = response.data!.totalParticipants;
-            });
-          }
-        } catch (e) {
-          print('Error loading participants for event ${event.id}: $e');
+      try {
+        final response = await widget.eventRepository.getEventParticipants(event.id);
+        if (response.success && response.data != null) {
+          final data = response.data!;
+          print('Event ${event.id} has ${data['total_participants']} participants and price \$${event.price}');
+          setState(() {
+            participantCounts[event.id] = data['total_participants'] as int;
+          });
         }
+      } catch (e) {
+        print('Error fetching participants for event ${event.id}: $e');
       }
     }
   }

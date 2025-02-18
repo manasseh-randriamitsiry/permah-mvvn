@@ -7,6 +7,13 @@ class AppConstants {
   static const String loginRoute = '/login';
   static const String homeRoute = '/home';
   static const String signupRoute = '/signup';
+  static const String forgotPasswordRoute = '/forgot-password';
+  static const String verifyResetCodeRoute = '/verify-reset-code';
+  static const String resetPasswordRoute = '/reset-password';
+  static const String myEventsRoute = '/my-events';
+  static const String dashboardRoute = '/dashboard';
+  static const String profileRoute = '/profile';
+  static const String createEventRoute = '/create-event';
 
   // Storage Keys
   static const String tokenKey = 'token';

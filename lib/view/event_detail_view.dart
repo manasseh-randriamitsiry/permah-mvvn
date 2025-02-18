@@ -352,7 +352,10 @@ class EventDetailScreen extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => EventParticipantsView(eventId: event.id!),
+                  builder: (context) => EventParticipantsView(
+                    eventId: event.id,
+                    eventTitle: event.title,
+                  ),
                 ),
               );
             },

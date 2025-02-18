@@ -31,6 +31,8 @@ class _EditEventViewState extends State<EditEventView> {
   late DateTime _endDate;
   bool _isLoading = false;
   String? _error;
+  late Event _event;
+  late EventRepository _eventRepository;
 
   @override
   void initState() {
@@ -47,6 +49,8 @@ class _EditEventViewState extends State<EditEventView> {
     _imageUrlController = TextEditingController(text: widget.event.imageUrl);
     _startDate = widget.event.startDate;
     _endDate = widget.event.endDate;
+    _event = widget.event;
+    _eventRepository = Provider.of<EventRepository>(context, listen: false);
   }
 
   @override
@@ -109,45 +113,44 @@ class _EditEventViewState extends State<EditEventView> {
 
     try {
       // Get the current participant count from the API
-      final repository = Provider.of<EventRepository>(context, listen: false);
-      final participantsResponse = await repository.getEventParticipants(widget.event.id!);
-      final currentParticipants = participantsResponse.success && participantsResponse.data != null
-          ? participantsResponse.data!.totalParticipants
-          : widget.event.attendeesCount;
+      final participantsResponse = await _eventRepository.getEventParticipants(widget.event.id!);
+      if (participantsResponse.success && participantsResponse.data != null) {
+        final data = participantsResponse.data!;
+        final totalParticipants = data['total_participants'] as int;
+        final updatedEvent = widget.event.copyWith(
+          title: _titleController.text,
+          description: _descriptionController.text,
+          location: _locationController.text,
+          availablePlaces: int.parse(_availablePlacesController.text),
+          attendeesCount: totalParticipants,
+          price: double.parse(_priceController.text),
+          imageUrl: _imageUrlController.text.isEmpty ? 'https://picsum.photos/800/400' : _imageUrlController.text,
+          startDate: _startDate,
+          endDate: _endDate,
+        );
 
-      final updatedEvent = widget.event.copyWith(
-        title: _titleController.text,
-        description: _descriptionController.text,
-        location: _locationController.text,
-        totalPlaces: int.parse(_availablePlacesController.text),
-        attendeesCount: currentParticipants,
-        price: double.parse(_priceController.text),
-        imageUrl: _imageUrlController.text.isEmpty ? 'https://picsum.photos/800/400' : _imageUrlController.text,
-        startDate: _startDate,
-        endDate: _endDate,
-      );
+        final response = await Provider.of<EventRepository>(
+          context,
+          listen: false,
+        ).updateEvent(
+          updatedEvent.id!,
+          title: updatedEvent.title,
+          description: updatedEvent.description,
+          location: updatedEvent.location,
+          availablePlaces: updatedEvent.availablePlaces,
+          price: updatedEvent.price,
+          imageUrl: updatedEvent.imageUrl,
+          startDate: updatedEvent.startDate,
+          endDate: updatedEvent.endDate,
+        );
 
-      final response = await Provider.of<EventRepository>(
-        context,
-        listen: false,
-      ).updateEvent(
-        updatedEvent.id!,
-        title: updatedEvent.title,
-        description: updatedEvent.description,
-        location: updatedEvent.location,
-        availablePlaces: updatedEvent.totalPlaces,
-        price: updatedEvent.price,
-        imageUrl: updatedEvent.imageUrl,
-        startDate: updatedEvent.startDate,
-        endDate: updatedEvent.endDate,
-      );
+        if (!mounted) return;
 
-      if (!mounted) return;
-
-      if (response.success) {
-        Navigator.pop(context, true);
-      } else {
-        setState(() => _error = response.message ?? 'Failed to update event');
+        if (response.success) {
+          Navigator.pop(context, true);
+        } else {
+          setState(() => _error = response.message ?? 'Failed to update event');
+        }
       }
     } catch (e) {
       if (!mounted) return;

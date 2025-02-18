@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../core/services/api_service.dart';
 import '../repository/auth_repository.dart';
-import '../viewmodel/register_viewmodel.dart';
+import '../viewmodel/reset_password_viewmodel.dart';
 import '../core/constants/app_constants.dart';
 import '../widgets/auth_gradient_background.dart';
 import '../widgets/auth_header.dart';
@@ -10,25 +10,27 @@ import '../widgets/auth_form_container.dart';
 import '../widgets/custom_text_field.dart';
 import '../widgets/message_widget.dart';
 import '../widgets/loading_button.dart';
-import '../widgets/server_settings_dialog.dart';
 
-class RegisterView extends StatelessWidget {
-  const RegisterView({super.key});
+class ResetPasswordView extends StatelessWidget {
+  const ResetPasswordView({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final args = ModalRoute.of(context)?.settings.arguments as Map<String, String>;
     return ChangeNotifierProvider(
-      create: (_) => RegisterViewModel(
+      create: (_) => ResetPasswordViewModel(
         Provider.of<AuthRepository>(context, listen: false),
         Provider.of<ApiService>(context, listen: false),
+        args['email']!,
+        args['code']!,
       ),
-      child: const RegisterScreen(),
+      child: const ResetPasswordScreen(),
     );
   }
 }
 
-class RegisterScreen extends StatelessWidget {
-  const RegisterScreen({super.key});
+class ResetPasswordScreen extends StatelessWidget {
+  const ResetPasswordScreen({super.key});
 
   void _showMessage(BuildContext context, String message, MessageType type) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -44,16 +46,9 @@ class RegisterScreen extends StatelessWidget {
     );
   }
 
-  void _showServerSettings(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => const ServerSettingsDialog(),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    final viewModel = Provider.of<RegisterViewModel>(context);
+    final viewModel = Provider.of<ResetPasswordViewModel>(context);
 
     return Scaffold(
       body: AuthGradientBackground(
@@ -61,30 +56,20 @@ class RegisterScreen extends StatelessWidget {
           child: Column(
             children: [
               const AuthHeader(
-                icon: Icons.person_add,
-                title: 'Create Account',
-                subtitle: 'Sign up to get started',
+                icon: Icons.lock_reset,
+                title: 'Reset Password',
+                subtitle: 'Enter your new password',
               ),
               AuthFormContainer(
-                title: 'Sign Up',
+                title: 'New Password',
                 children: [
                   CustomTextField(
-                    controller: viewModel.nameController,
-                    label: 'Full Name',
-                    icon: Icons.person_outline,
-                  ),
-                  CustomTextField(
-                    controller: viewModel.emailController,
-                    label: 'Email',
-                    icon: Icons.email_outlined,
-                    keyboardType: TextInputType.emailAddress,
-                  ),
-                  CustomTextField(
                     controller: viewModel.passwordController,
-                    label: 'Password',
+                    label: 'New Password',
                     icon: Icons.lock_outline,
                     isPassword: true,
                   ),
+                  const SizedBox(height: 16),
                   CustomTextField(
                     controller: viewModel.confirmPasswordController,
                     label: 'Confirm Password',
@@ -99,48 +84,29 @@ class RegisterScreen extends StatelessWidget {
                     ),
                   LoadingButton(
                     isLoading: viewModel.isLoading,
-                    text: 'SIGN UP',
+                    text: 'RESET PASSWORD',
                     onPressed: () async {
                       if (!viewModel.validateInputs()) {
                         return;
                       }
-                      final response = await viewModel.register();
+                      final response = await viewModel.resetPassword();
                       if (!context.mounted) return;
                       
                       if (response.success) {
-                        Navigator.of(context)
-                            .pushReplacementNamed(AppConstants.homeRoute);
+                        _showMessage(
+                          context,
+                          'Password reset successfully. Please login with your new password.',
+                          MessageType.success,
+                        );
+                        Navigator.of(context).pushNamedAndRemoveUntil(
+                          AppConstants.loginRoute,
+                          (route) => false,
+                        );
                       } else {
-                        final message = response.message ?? 'Registration failed';
+                        final message = response.message ?? 'Failed to reset password';
                         _showMessage(context, message, MessageType.error);
                       }
                     },
-                  ),
-                  const SizedBox(height: 24),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text(
-                        'Already have an account? ',
-                        style: TextStyle(
-                          color: Colors.black54,
-                          fontSize: 16,
-                        ),
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.pop(context);
-                        },
-                        child: const Text(
-                          'Login',
-                          style: TextStyle(
-                            color: Color(0xFF673AB7),
-                            fontWeight: FontWeight.w600,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ),
-                    ],
                   ),
                 ],
               ),
@@ -150,4 +116,4 @@ class RegisterScreen extends StatelessWidget {
       ),
     );
   }
-}
+} 

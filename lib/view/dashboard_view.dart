@@ -5,6 +5,7 @@ import '../widgets/event_statistics.dart';
 import '../widgets/loading_widget.dart';
 import '../widgets/error_widget.dart';
 import '../repository/auth_repository.dart';
+import '../repository/event_repository.dart';
 
 class DashboardView extends StatefulWidget {
   const DashboardView({super.key});
@@ -26,9 +27,7 @@ class _DashboardViewState extends State<DashboardView> {
   @override
   Widget build(BuildContext context) {
     final viewModel = Provider.of<EventListViewModel>(context);
-    final currentUserEmail = Provider.of<AuthRepository>(context, listen: false)
-        .currentUser!
-        .email;
+    final currentUser = Provider.of<AuthRepository>(context, listen: false).currentUser;
 
     return SafeArea(
       child: RefreshIndicator(
@@ -52,7 +51,8 @@ class _DashboardViewState extends State<DashboardView> {
                 children: [
                   EventStatistics(
                     events: viewModel.events,
-                    currentUserEmail: currentUserEmail,
+                    currentUserEmail: currentUser?.email ?? '',
+                    eventRepository: Provider.of<EventRepository>(context, listen: false),
                   ),
                   // Add more dashboard widgets here in the future
                 ],

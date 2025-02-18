@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../repository/auth_repository.dart';
 import '../viewmodel/profile_viewmodel.dart';
+import '../core/theme/theme_provider.dart';
 import '../widgets/gradient_background.dart';
+import '../widgets/auth_header.dart';
 import '../widgets/auth_form_container.dart';
 import '../widgets/custom_text_field.dart';
 import '../widgets/message_widget.dart';
@@ -42,6 +44,7 @@ class ProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final viewModel = Provider.of<ProfileViewModel>(context);
+    final themeProvider = Provider.of<ThemeProvider>(context);
     final theme = Theme.of(context);
 
     if (viewModel.user == null) {
@@ -55,37 +58,47 @@ class ProfileScreen extends StatelessWidget {
             child: Column(
               children: [
                 const SizedBox(height: 24),
-                Center(
-                  child: Column(
-                    children: [
-                      CircleAvatar(
-                        radius: 40,
-                        backgroundColor: theme.colorScheme.onPrimary,
-                        child: Text(
-                          viewModel.user?.name[0].toUpperCase() ?? 'U',
-                          style: TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
-                            color: theme.colorScheme.primary,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        viewModel.user?.name ?? '',
-                        style: theme.textTheme.headlineSmall?.copyWith(
+                Stack(
+                  children: [
+                    Positioned(
+                      right: 16,
+                      top: 0,
+                      child: IconButton(
+                        icon: Icon(
+                          themeProvider.themeMode == ThemeMode.dark
+                              ? Icons.light_mode
+                              : Icons.dark_mode,
                           color: theme.colorScheme.onPrimary,
-                          fontWeight: FontWeight.bold,
                         ),
+                        onPressed: () => themeProvider.toggleTheme(),
                       ),
-                      Text(
-                        viewModel.user?.email ?? '',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          color: theme.colorScheme.onPrimary.withOpacity(0.8),
-                        ),
+                    ),
+                    Center(
+                      child: Column(
+                        children: [
+                          CircleAvatar(
+                            radius: 40,
+                            backgroundColor: theme.colorScheme.onPrimary,
+                            child: Text(
+                              viewModel.user?.name[0].toUpperCase() ?? 'U',
+                              style: TextStyle(
+                                fontSize: 32,
+                                fontWeight: FontWeight.bold,
+                                color: theme.colorScheme.primary,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            viewModel.user?.email ?? '',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              color: theme.colorScheme.onPrimary.withOpacity(0.8),
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 32),
                 AuthFormContainer(
@@ -148,13 +161,13 @@ class ProfileScreen extends StatelessWidget {
                         final isChangingPassword = viewModel.currentPasswordController.text.isNotEmpty ||
                             viewModel.newPasswordController.text.isNotEmpty ||
                             viewModel.confirmPasswordController.text.isNotEmpty;
-                            
+
                         final response = await viewModel.updateProfile(
                           isChangingPassword: isChangingPassword,
                         );
-                        
+
                         if (!context.mounted) return;
-                        
+
                         if (response.success) {
                           _showMessage(
                             context,

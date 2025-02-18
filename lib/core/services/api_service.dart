@@ -665,4 +665,187 @@ class ApiService {
       return ApiResponse.error('Network error: ${e.toString()}');
     }
   }
+
+  Future<ApiResponse<void>> requestPasswordReset(String email) async {
+    final client = http.Client();
+    try {
+      final response = await client
+          .post(
+            Uri.parse('$baseUrl/api/auth/forgot-password'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: json.encode({
+              'email': email,
+            }),
+          )
+          .timeout(timeout);
+
+      if (response.statusCode == 200) {
+        return ApiResponse.success(null);
+      } else {
+        try {
+          final data = json.decode(response.body);
+          final errorMessage = data['message'] ?? 'Failed to send reset code';
+          return ApiResponse.error(errorMessage, statusCode: response.statusCode);
+        } catch (e) {
+          return ApiResponse.error(
+            'Failed to send reset code',
+            statusCode: response.statusCode,
+          );
+        }
+      }
+    } catch (e) {
+      return _handleError(e);
+    } finally {
+      client.close();
+    }
+  }
+
+  Future<ApiResponse<void>> verifyResetCode(String email, String code) async {
+    final client = http.Client();
+    try {
+      final response = await client
+          .post(
+            Uri.parse('$baseUrl/api/auth/verify-reset-code'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: json.encode({
+              'email': email,
+              'code': code,
+            }),
+          )
+          .timeout(timeout);
+
+      if (response.statusCode == 200) {
+        return ApiResponse.success(null);
+      } else {
+        try {
+          final data = json.decode(response.body);
+          final errorMessage = data['message'] ?? 'Invalid verification code';
+          return ApiResponse.error(errorMessage, statusCode: response.statusCode);
+        } catch (e) {
+          return ApiResponse.error(
+            'Invalid verification code',
+            statusCode: response.statusCode,
+          );
+        }
+      }
+    } catch (e) {
+      return _handleError(e);
+    } finally {
+      client.close();
+    }
+  }
+
+  Future<ApiResponse<void>> resetPassword(
+      String email, String code, String newPassword) async {
+    final client = http.Client();
+    try {
+      final response = await client
+          .post(
+            Uri.parse('$baseUrl/api/auth/reset-password'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: json.encode({
+              'email': email,
+              'code': code,
+              'new_password': newPassword,
+            }),
+          )
+          .timeout(timeout);
+
+      if (response.statusCode == 200) {
+        return ApiResponse.success(null);
+      } else {
+        try {
+          final data = json.decode(response.body);
+          final errorMessage = data['message'] ?? 'Failed to reset password';
+          return ApiResponse.error(errorMessage, statusCode: response.statusCode);
+        } catch (e) {
+          return ApiResponse.error(
+            'Failed to reset password',
+            statusCode: response.statusCode,
+          );
+        }
+      }
+    } catch (e) {
+      return _handleError(e);
+    } finally {
+      client.close();
+    }
+  }
+
+  Future<ApiResponse<Map<String, dynamic>>> getMyCreatedEvents() async {
+    try {
+      print('Fetching created events from: $baseUrl/api/events/my-created');
+      print('Headers: ${_getHeaders()}');
+      
+      final response = await http.get(
+        Uri.parse('$baseUrl/api/events/my-created'),
+        headers: _getHeaders(),
+      );
+
+      print('Created events response status: ${response.statusCode}');
+      print('Created events response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return ApiResponse.success(data);
+      }
+
+      try {
+        final data = json.decode(response.body);
+        return ApiResponse.error(
+          data['message'] ?? 'Failed to fetch created events',
+          statusCode: response.statusCode,
+        );
+      } catch (e) {
+        print('Error parsing created events error response: $e');
+        return ApiResponse.error('Failed to fetch created events');
+      }
+    } catch (e) {
+      print('Network error in created events: $e');
+      return ApiResponse.error('Network error: ${e.toString()}');
+    }
+  }
+
+  Future<ApiResponse<Map<String, dynamic>>> getMyAttendedEvents() async {
+    try {
+      print('Fetching attended events from: $baseUrl/api/events/my-attended');
+      print('Headers: ${_getHeaders()}');
+      
+      final response = await http.get(
+        Uri.parse('$baseUrl/api/events/my-attended'),
+        headers: _getHeaders(),
+      );
+
+      print('Attended events response status: ${response.statusCode}');
+      print('Attended events response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return ApiResponse.success(data);
+      }
+
+      try {
+        final data = json.decode(response.body);
+        return ApiResponse.error(
+          data['message'] ?? 'Failed to fetch attended events',
+          statusCode: response.statusCode,
+        );
+      } catch (e) {
+        print('Error parsing attended events error response: $e');
+        return ApiResponse.error('Failed to fetch attended events');
+      }
+    } catch (e) {
+      print('Network error in attended events: $e');
+      return ApiResponse.error('Network error: ${e.toString()}');
+    }
+  }
 }

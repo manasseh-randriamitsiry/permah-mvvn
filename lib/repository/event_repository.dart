@@ -1,7 +1,7 @@
 import '../model/api_response.dart';
 import '../model/event.dart';
 import '../model/event_statistics.dart';
-import '../model/event_participants.dart';
+import '../model/participant.dart';
 import '../core/services/api_service.dart';
 
 class EventRepository {
@@ -180,16 +180,39 @@ class EventRepository {
     return ApiResponse.error(response.message ?? 'Failed to fetch event statistics');
   }
 
-  Future<ApiResponse<EventParticipants>> getEventParticipants(int eventId) async {
-    final response = await _apiService.getEventParticipants(eventId);
-    if (response.success && response.data != null) {
-      try {
-        final participants = EventParticipants.fromJson(response.data!);
-        return ApiResponse.success(participants);
-      } catch (e) {
-        return ApiResponse.error('Error parsing event participants: ${e.toString()}');
+  Future<ApiResponse<Map<String, dynamic>>> getEventParticipants(int eventId) async {
+    try {
+      final response = await _apiService.getEventParticipants(eventId);
+      if (response.success) {
+        return response;
       }
+      return ApiResponse.error(response.message ?? 'Failed to fetch event participants');
+    } catch (e) {
+      return ApiResponse.error('Network error: ${e.toString()}');
     }
-    return ApiResponse.error(response.message ?? 'Failed to fetch event participants');
+  }
+
+  Future<ApiResponse<Map<String, dynamic>>> getMyCreatedEvents() async {
+    try {
+      final response = await _apiService.getMyCreatedEvents();
+      if (response.success) {
+        return response;
+      }
+      return ApiResponse.error(response.message ?? 'Failed to fetch created events');
+    } catch (e) {
+      return ApiResponse.error('Network error: ${e.toString()}');
+    }
+  }
+
+  Future<ApiResponse<Map<String, dynamic>>> getMyAttendedEvents() async {
+    try {
+      final response = await _apiService.getMyAttendedEvents();
+      if (response.success) {
+        return response;
+      }
+      return ApiResponse.error(response.message ?? 'Failed to fetch attended events');
+    } catch (e) {
+      return ApiResponse.error('Network error: ${e.toString()}');
+    }
   }
 }

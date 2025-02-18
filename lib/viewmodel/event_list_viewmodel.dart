@@ -49,18 +49,7 @@ class EventListViewModel extends ChangeNotifier {
         for (final event in _events) {
           if (event.id != null) {
             print('EventListViewModel: Loading participants for event ${event.id}');
-            final participantsResponse = await _eventRepository.getEventParticipants(event.id!);
-            if (participantsResponse.success && participantsResponse.data != null) {
-              final index = _events.indexWhere((e) => e.id == event.id);
-              if (index != -1) {
-                _events[index] = event.copyWith(
-                  attendeesCount: participantsResponse.data!.totalParticipants,
-                );
-                print('EventListViewModel: Updated event ${event.id} with ${participantsResponse.data!.totalParticipants} participants');
-              }
-            } else {
-              print('EventListViewModel: Failed to load participants for event ${event.id}: ${participantsResponse.message}');
-            }
+            await _updateEventParticipants(event, _events.indexOf(event));
           }
         }
         
@@ -153,8 +142,8 @@ class EventListViewModel extends ChangeNotifier {
   Future<void> loadEventParticipants(int eventId) async {
     try {
       final response = await _eventRepository.getEventParticipants(eventId);
-      if (response.success) {
-        _eventParticipants = response.data;
+      if (response.success && response.data != null) {
+        _eventParticipants = EventParticipants.fromJson(response.data!);
         notifyListeners();
       }
     } catch (e) {
@@ -218,6 +207,21 @@ class EventListViewModel extends ChangeNotifier {
         message: 'Failed to leave event: ${e.toString()}',
         statusCode: 500,
       );
+    }
+  }
+
+  Future<void> _updateEventParticipants(Event event, int index) async {
+    try {
+      final participantsResponse = await _eventRepository.getEventParticipants(event.id);
+      if (participantsResponse.success && participantsResponse.data != null) {
+        final data = participantsResponse.data!;
+        _events[index] = event.copyWith(
+          attendeesCount: data['total_participants'] as int,
+        );
+        print('EventListViewModel: Updated event ${event.id} with ${data['total_participants']} participants');
+      }
+    } catch (e) {
+      print('EventListViewModel: Error updating participants for event ${event.id}: $e');
     }
   }
 }

@@ -10,9 +10,16 @@ import 'viewmodel/event_list_viewmodel.dart';
 import 'view/login_view.dart';
 import 'view/home_view.dart';
 import 'view/register_view.dart';
+import 'view/dashboard_view.dart';
+import 'view/profile_view.dart';
+import 'view/create_event_view.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_provider.dart';
 import 'common/util.dart';
+import 'view/forgot_password_view.dart';
+import 'view/verify_reset_code_view.dart';
+import 'view/reset_password_view.dart';
+import 'view/my_events_view.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -75,6 +82,13 @@ class MyApp extends StatelessWidget {
             AppConstants.loginRoute: (context) => const LoginView(),
             AppConstants.signupRoute: (context) => const RegisterView(),
             AppConstants.homeRoute: (context) => const HomeView(),
+            AppConstants.forgotPasswordRoute: (context) => const ForgotPasswordView(),
+            AppConstants.verifyResetCodeRoute: (context) => const VerifyResetCodeView(),
+            AppConstants.resetPasswordRoute: (context) => const ResetPasswordView(),
+            AppConstants.myEventsRoute: (context) => const MyEventsView(),
+            AppConstants.dashboardRoute: (context) => const DashboardView(),
+            AppConstants.profileRoute: (context) => const ProfileView(),
+            AppConstants.createEventRoute: (context) => const CreateEventView(),
           },
         );
       },
