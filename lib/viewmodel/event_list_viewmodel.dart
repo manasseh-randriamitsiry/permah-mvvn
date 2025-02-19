@@ -51,15 +51,13 @@ class EventListViewModel extends ChangeNotifier {
 
   Future<void> loadEvents() async {
     if (_isDisposed) return;
-    
-    print('EventListViewModel: Starting loadEvents()');
+
     _isLoading = true;
     _error = null;
     _events = []; // Clear existing events before loading
     _safeNotifyListeners();
 
     try {
-      print('EventListViewModel: Making API call to load events...');
       final response = await _eventRepository.getEvents();
       if (_isDisposed) return;
 
@@ -77,16 +75,12 @@ class EventListViewModel extends ChangeNotifier {
           ..sort((a, b) => a.startDate.compareTo(b.startDate));
         
         _error = null;
-        print('EventListViewModel: Successfully loaded ${_events.length} upcoming events');
         
         if (!_isDisposed) {
-          // Update participant counts and join status for all events
-          print('EventListViewModel: Updating participant counts and join status...');
           for (final event in _events) {
             if (_isDisposed) return;
             if (event.id != null) {
               final index = _events.indexOf(event);
-              print('EventListViewModel: Loading participants for event ${event.id}');
               await _updateEventParticipants(event, index);
               // Check join status for each event
               await _checkJoinStatus(event, index);
@@ -95,13 +89,10 @@ class EventListViewModel extends ChangeNotifier {
           
           // Try to schedule notifications, but don't let failures affect the UI
           try {
-            print('EventListViewModel: Scheduling notifications for joined upcoming events...');
             for (final event in _events) {
               if (_isDisposed) return;
               if (event.isJoined == true && event.startDate.isAfter(DateTime.now())) {
-                print('EventListViewModel: Scheduling notification for event ${event.id}');
                 await _notificationService.scheduleEventNotification(event).catchError((e) {
-                  print('EventListViewModel: Failed to schedule notification for event ${event.id}: $e');
                   return null;
                 });
               }
@@ -213,8 +204,6 @@ class EventListViewModel extends ChangeNotifier {
     
     try {
       final response = await _eventRepository.joinEvent(eventId);
-      print('Join event response status: ${response.statusCode}');
-      print('Join event response body: ${response.message}');
       
       if (_isDisposed) {
         return ApiResponse(

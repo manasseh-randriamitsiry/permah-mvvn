@@ -168,26 +168,34 @@ class _EventListScreenState extends State<EventListScreen> {
                             if (mounted) setState(() {});
                           },
                         ),
-                        SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: Row(
-                            children: [
-                              _FilterChip(
-                                label: 'All',
-                                selected: _selectedFilter == 'all',
-                                onSelected: (selected) {
-                                  if (mounted) setState(() => _selectedFilter = 'all');
-                                },
+                        const SizedBox(height: 12),
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 4),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                children: [
+                                  _FilterChip(
+                                    label: 'All',
+                                    selected: _selectedFilter == 'all',
+                                    onSelected: (selected) {
+                                      if (mounted) setState(() => _selectedFilter = 'all');
+                                    },
+                                  ),
+                                  const SizedBox(width: 8),
+                                  _FilterChip(
+                                    label: 'Joined',
+                                    selected: _selectedFilter == 'joined',
+                                    onSelected: (selected) {
+                                      if (mounted) setState(() => _selectedFilter = 'joined');
+                                    },
+                                  ),
+                                ],
                               ),
-                              const SizedBox(width: 8),
-                              _FilterChip(
-                                label: 'Joined',
-                                selected: _selectedFilter == 'joined',
-                                onSelected: (selected) {
-                                  if (mounted) setState(() => _selectedFilter = 'joined');
-                                },
-                              ),
-                            ],
+                            ),
                           ),
                         ),
                       ],

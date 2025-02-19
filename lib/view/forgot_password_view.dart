@@ -51,80 +51,89 @@ class ForgotPasswordScreen extends StatelessWidget {
     return Scaffold(
       body: AuthGradientBackground(
         child: SafeArea(
-          child: Column(
-            children: [
-              const AuthHeader(
-                icon: Icons.lock_reset,
-                title: 'Forgot Password',
-                subtitle: 'Enter your email to reset password',
+          child: SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minHeight: MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top,
               ),
-              Expanded(
-                child: AuthFormContainer(
-                  title: 'Reset Password',
+              child: IntrinsicHeight(
+                child: Column(
                   children: [
-                    CustomTextField(
-                      controller: viewModel.emailController,
-                      label: 'Email',
-                      icon: Icons.email_outlined,
-                      keyboardType: TextInputType.emailAddress,
+                    const AuthHeader(
+                      icon: Icons.lock_reset,
+                      title: 'Reset Password',
+                      subtitle: 'Enter your email to reset password',
                     ),
-                    const Spacer(),
-                    LoadingButton(
-                      isLoading: viewModel.isLoading,
-                      text: 'SEND RESET CODE',
-                      onPressed: () async {
-                        if (!viewModel.validateInputs()) {
-                          return;
-                        }
-                        final response = await viewModel.requestPasswordReset();
-                        if (!context.mounted) return;
-                        
-                        if (response.success) {
-                          _showMessage(
-                            context,
-                            'Reset code sent successfully. Please check your email.',
-                            MessageType.success,
-                          );
-                          Navigator.of(context).pushNamed(
-                            AppConstants.verifyResetCodeRoute,
-                            arguments: viewModel.emailController.text,
-                          );
-                        } else {
-                          final message = response.message ?? 'Failed to send reset code';
-                          _showMessage(context, message, MessageType.error);
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 24),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Text(
-                          'Remember your password? ',
-                          style: TextStyle(
-                            color: Colors.black54,
-                            fontSize: 16,
+                    Expanded(
+                      child: AuthFormContainer(
+                        title: 'Reset Password',
+                        children: [
+                          CustomTextField(
+                            controller: viewModel.emailController,
+                            label: 'Email',
+                            icon: Icons.email_outlined,
+                            keyboardType: TextInputType.emailAddress,
                           ),
-                        ),
-                        TextButton(
-                          onPressed: () {
-                            Navigator.pop(context);
-                          },
-                          child: const Text(
-                            'Login',
-                            style: TextStyle(
-                              color: Color(0xFF673AB7),
-                              fontWeight: FontWeight.w600,
-                              fontSize: 16,
-                            ),
+                          const Spacer(),
+                          LoadingButton(
+                            isLoading: viewModel.isLoading,
+                            text: 'SEND RESET CODE',
+                            onPressed: () async {
+                              if (!viewModel.validateInputs()) {
+                                return;
+                              }
+                              final response = await viewModel.requestPasswordReset();
+                              if (!context.mounted) return;
+                              
+                              if (response.success) {
+                                _showMessage(
+                                  context,
+                                  'Reset code sent successfully. Please check your email.',
+                                  MessageType.success,
+                                );
+                                Navigator.of(context).pushNamed(
+                                  AppConstants.verifyResetCodeRoute,
+                                  arguments: viewModel.emailController.text,
+                                );
+                              } else {
+                                final message = response.message ?? 'Failed to send reset code';
+                                _showMessage(context, message, MessageType.error);
+                              }
+                            },
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 24),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Text(
+                                'Remember your password? ',
+                                style: TextStyle(
+                                  color: Colors.black54,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              TextButton(
+                                onPressed: () {
+                                  Navigator.pop(context);
+                                },
+                                child: const Text(
+                                  'Login',
+                                  style: TextStyle(
+                                    color: Color(0xFF673AB7),
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
               ),
-            ],
+            ),
           ),
         ),
       ),

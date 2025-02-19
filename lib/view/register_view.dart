@@ -58,90 +58,99 @@ class RegisterScreen extends StatelessWidget {
     return Scaffold(
       body: AuthGradientBackground(
         child: SafeArea(
-          child: Column(
-            children: [
-              const AuthHeader(
-                icon: Icons.person_add,
-                title: 'Create Account',
-                subtitle: 'Sign up to get started',
+          child: SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minHeight: MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top,
               ),
-              Expanded(
-                child: AuthFormContainer(
-                  title: 'Sign Up',
+              child: IntrinsicHeight(
+                child: Column(
                   children: [
-                    CustomTextField(
-                      controller: viewModel.nameController,
-                      label: 'Full Name',
-                      icon: Icons.person_outline,
+                    const AuthHeader(
+                      icon: Icons.person_add,
+                      title: 'Create Account',
+                      subtitle: 'Sign up to get started',
                     ),
-                    CustomTextField(
-                      controller: viewModel.emailController,
-                      label: 'Email',
-                      icon: Icons.email_outlined,
-                      keyboardType: TextInputType.emailAddress,
-                    ),
-                    CustomTextField(
-                      controller: viewModel.passwordController,
-                      label: 'Password',
-                      icon: Icons.lock_outline,
-                      isPassword: true,
-                    ),
-                    CustomTextField(
-                      controller: viewModel.confirmPasswordController,
-                      label: 'Confirm Password',
-                      icon: Icons.lock_outline,
-                      isPassword: true,
-                    ),
-                    const Spacer(),
-                    LoadingButton(
-                      isLoading: viewModel.isLoading,
-                      text: 'SIGN UP',
-                      onPressed: () async {
-                        if (!viewModel.validateInputs()) {
-                          return;
-                        }
-                        final response = await viewModel.register();
-                        if (!context.mounted) return;
-                        
-                        if (response.success) {
-                          Navigator.of(context)
-                              .pushReplacementNamed(AppConstants.homeRoute);
-                        } else {
-                          final message = response.message ?? 'Registration failed';
-                          _showMessage(context, message, MessageType.error);
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 24),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Text(
-                          'Already have an account? ',
-                          style: TextStyle(
-                            color: Colors.black54,
-                            fontSize: 16,
+                    Expanded(
+                      child: AuthFormContainer(
+                        title: 'Sign Up',
+                        children: [
+                          CustomTextField(
+                            controller: viewModel.nameController,
+                            label: 'Full Name',
+                            icon: Icons.person_outline,
                           ),
-                        ),
-                        TextButton(
-                          onPressed: () {
-                            Navigator.pop(context);
-                          },
-                          child: const Text(
-                            'Login',
-                            style: TextStyle(
-                              color: Color(0xFF673AB7),
-                              fontWeight: FontWeight.w600,
-                              fontSize: 16,
-                            ),
+                          CustomTextField(
+                            controller: viewModel.emailController,
+                            label: 'Email',
+                            icon: Icons.email_outlined,
+                            keyboardType: TextInputType.emailAddress,
                           ),
-                        ),
-                      ],
+                          CustomTextField(
+                            controller: viewModel.passwordController,
+                            label: 'Password',
+                            icon: Icons.lock_outline,
+                            isPassword: true,
+                          ),
+                          CustomTextField(
+                            controller: viewModel.confirmPasswordController,
+                            label: 'Confirm Password',
+                            icon: Icons.lock_outline,
+                            isPassword: true,
+                          ),
+                          const Spacer(),
+                          LoadingButton(
+                            isLoading: viewModel.isLoading,
+                            text: 'SIGN UP',
+                            onPressed: () async {
+                              if (!viewModel.validateInputs()) {
+                                return;
+                              }
+                              final response = await viewModel.register();
+                              if (!context.mounted) return;
+                              
+                              if (response.success) {
+                                Navigator.of(context)
+                                    .pushReplacementNamed(AppConstants.homeRoute);
+                              } else {
+                                final message = response.message ?? 'Registration failed';
+                                _showMessage(context, message, MessageType.error);
+                              }
+                            },
+                          ),
+                          const SizedBox(height: 24),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Text(
+                                'Already have an account? ',
+                                style: TextStyle(
+                                  color: Colors.black54,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              TextButton(
+                                onPressed: () {
+                                  Navigator.pop(context);
+                                },
+                                child: const Text(
+                                  'Login',
+                                  style: TextStyle(
+                                    color: Color(0xFF673AB7),
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
               ),
-            ],
+            ),
           ),
         ),
       ),

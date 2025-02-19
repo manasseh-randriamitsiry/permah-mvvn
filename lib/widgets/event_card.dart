@@ -189,21 +189,27 @@ class EventCard extends StatelessWidget {
                           ],
                         ),
                       if (showCreator && event.creator != null)
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.person_outline,
-                              size: 16,
-                              color: theme.colorScheme.onSurface.withOpacity(0.7),
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              event.creatorName,
-                              style: theme.textTheme.bodyMedium?.copyWith(
+                        Expanded(
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.person_outline,
+                                size: 16,
                                 color: theme.colorScheme.onSurface.withOpacity(0.7),
                               ),
-                            ),
-                          ],
+                              const SizedBox(width: 4),
+                              Flexible(
+                                child: Text(
+                                  event.creatorName,
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: theme.colorScheme.onSurface.withOpacity(0.7),
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       Text(
                         event.price > 0
