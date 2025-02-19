@@ -78,11 +78,6 @@ class ResetPasswordScreen extends StatelessWidget {
                       isPassword: true,
                     ),
                     const Spacer(),
-                    if (viewModel.error != null)
-                      MessageWidget(
-                        message: viewModel.error!,
-                        type: MessageType.error,
-                      ),
                     LoadingButton(
                       isLoading: viewModel.isLoading,
                       text: 'RESET PASSWORD',

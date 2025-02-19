@@ -109,11 +109,6 @@ class LoginScreen extends StatelessWidget {
                       ),
                     ),
                     const Spacer(),
-                    if (viewModel.error != null)
-                      MessageWidget(
-                        message: viewModel.error!,
-                        type: MessageType.error,
-                      ),
                     LoadingButton(
                       isLoading: viewModel.isLoading,
                       text: 'LOGIN',
@@ -123,7 +118,7 @@ class LoginScreen extends StatelessWidget {
                         }
                         final response = await viewModel.login();
                         if (!context.mounted) return;
-                        
+
                         if (response.success) {
                           Navigator.of(context)
                               .pushReplacementNamed(AppConstants.homeRoute);

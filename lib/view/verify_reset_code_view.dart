@@ -71,11 +71,6 @@ class VerifyResetCodeScreen extends StatelessWidget {
                       maxLength: 6,
                     ),
                     const Spacer(),
-                    if (viewModel.error != null)
-                      MessageWidget(
-                        message: viewModel.error!,
-                        type: MessageType.error,
-                      ),
                     LoadingButton(
                       isLoading: viewModel.isLoading,
                       text: 'VERIFY CODE',

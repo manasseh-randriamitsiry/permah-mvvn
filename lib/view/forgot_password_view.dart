@@ -69,11 +69,6 @@ class ForgotPasswordScreen extends StatelessWidget {
                       keyboardType: TextInputType.emailAddress,
                     ),
                     const Spacer(),
-                    if (viewModel.error != null)
-                      MessageWidget(
-                        message: viewModel.error!,
-                        type: MessageType.error,
-                      ),
                     LoadingButton(
                       isLoading: viewModel.isLoading,
                       text: 'SEND RESET CODE',
