@@ -66,99 +66,101 @@ class LoginScreen extends StatelessWidget {
                 title: 'Welcome Back',
                 subtitle: 'Sign in to continue',
               ),
-              AuthFormContainer(
-                title: 'Login',
-                titleTrailing: IconButton(
-                  icon: const Icon(
-                    Icons.settings,
-                    size: 24,
-                    color: Colors.black54,
-                  ),
-                  onPressed: () => _showServerSettings(context),
-                  tooltip: 'Server Settings',
-                ),
-                children: [
-                  CustomTextField(
-                    controller: viewModel.emailController,
-                    label: 'Email',
-                    icon: Icons.email_outlined,
-                    keyboardType: TextInputType.emailAddress,
-                  ),
-                  CustomTextField(
-                    controller: viewModel.passwordController,
-                    label: 'Password',
-                    icon: Icons.lock_outline,
-                    isPassword: true,
-                  ),
-                  const SizedBox(height: 16),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton(
-                      onPressed: () {
-                        Navigator.pushNamed(context, AppConstants.forgotPasswordRoute);
-                      },
-                      child: const Text(
-                        'Forgot Password?',
-                        style: TextStyle(
-                          color: Color(0xFF673AB7),
-                          fontWeight: FontWeight.w600,
-                          fontSize: 14,
-                        ),
-                      ),
+              Expanded(
+                child: AuthFormContainer(
+                  title: 'Login',
+                  titleTrailing: IconButton(
+                    icon: const Icon(
+                      Icons.settings,
+                      size: 24,
+                      color: Colors.black54,
                     ),
+                    onPressed: () => _showServerSettings(context),
+                    tooltip: 'Server Settings',
                   ),
-                  const Spacer(),
-                  if (viewModel.error != null)
-                    MessageWidget(
-                      message: viewModel.error!,
-                      type: MessageType.error,
+                  children: [
+                    CustomTextField(
+                      controller: viewModel.emailController,
+                      label: 'Email',
+                      icon: Icons.email_outlined,
+                      keyboardType: TextInputType.emailAddress,
                     ),
-                  LoadingButton(
-                    isLoading: viewModel.isLoading,
-                    text: 'LOGIN',
-                    onPressed: () async {
-                      if (!viewModel.validateInputs()) {
-                        return;
-                      }
-                      final response = await viewModel.login();
-                      if (!context.mounted) return;
-                      
-                      if (response.success) {
-                        Navigator.of(context)
-                            .pushReplacementNamed(AppConstants.homeRoute);
-                      } else {
-                        final message = response.message ?? 'Login failed';
-                        _showMessage(context, message, MessageType.error);
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 24),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text(
-                        'Don\'t have an account? ',
-                        style: TextStyle(
-                          color: Colors.black54,
-                          fontSize: 16,
-                        ),
-                      ),
-                      TextButton(
+                    CustomTextField(
+                      controller: viewModel.passwordController,
+                      label: 'Password',
+                      icon: Icons.lock_outline,
+                      isPassword: true,
+                    ),
+                    const SizedBox(height: 16),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
                         onPressed: () {
-                          Navigator.pushNamed(context, AppConstants.signupRoute);
+                          Navigator.pushNamed(context, AppConstants.forgotPasswordRoute);
                         },
                         child: const Text(
-                          'Sign Up',
+                          'Forgot Password?',
                           style: TextStyle(
                             color: Color(0xFF673AB7),
                             fontWeight: FontWeight.w600,
-                            fontSize: 16,
+                            fontSize: 14,
                           ),
                         ),
                       ),
-                    ],
-                  ),
-                ],
+                    ),
+                    const Spacer(),
+                    if (viewModel.error != null)
+                      MessageWidget(
+                        message: viewModel.error!,
+                        type: MessageType.error,
+                      ),
+                    LoadingButton(
+                      isLoading: viewModel.isLoading,
+                      text: 'LOGIN',
+                      onPressed: () async {
+                        if (!viewModel.validateInputs()) {
+                          return;
+                        }
+                        final response = await viewModel.login();
+                        if (!context.mounted) return;
+                        
+                        if (response.success) {
+                          Navigator.of(context)
+                              .pushReplacementNamed(AppConstants.homeRoute);
+                        } else {
+                          final message = response.message ?? 'Login failed';
+                          _showMessage(context, message, MessageType.error);
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 24),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text(
+                          'Don\'t have an account? ',
+                          style: TextStyle(
+                            color: Colors.black54,
+                            fontSize: 16,
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.pushNamed(context, AppConstants.signupRoute);
+                          },
+                          child: const Text(
+                            'Sign Up',
+                            style: TextStyle(
+                              color: Color(0xFF673AB7),
+                              fontWeight: FontWeight.w600,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ],
           ),

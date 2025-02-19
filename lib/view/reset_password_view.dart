@@ -60,55 +60,57 @@ class ResetPasswordScreen extends StatelessWidget {
                 title: 'Reset Password',
                 subtitle: 'Enter your new password',
               ),
-              AuthFormContainer(
-                title: 'New Password',
-                children: [
-                  CustomTextField(
-                    controller: viewModel.passwordController,
-                    label: 'New Password',
-                    icon: Icons.lock_outline,
-                    isPassword: true,
-                  ),
-                  const SizedBox(height: 16),
-                  CustomTextField(
-                    controller: viewModel.confirmPasswordController,
-                    label: 'Confirm Password',
-                    icon: Icons.lock_outline,
-                    isPassword: true,
-                  ),
-                  const Spacer(),
-                  if (viewModel.error != null)
-                    MessageWidget(
-                      message: viewModel.error!,
-                      type: MessageType.error,
+              Expanded(
+                child: AuthFormContainer(
+                  title: 'New Password',
+                  children: [
+                    CustomTextField(
+                      controller: viewModel.passwordController,
+                      label: 'New Password',
+                      icon: Icons.lock_outline,
+                      isPassword: true,
                     ),
-                  LoadingButton(
-                    isLoading: viewModel.isLoading,
-                    text: 'RESET PASSWORD',
-                    onPressed: () async {
-                      if (!viewModel.validateInputs()) {
-                        return;
-                      }
-                      final response = await viewModel.resetPassword();
-                      if (!context.mounted) return;
-                      
-                      if (response.success) {
-                        _showMessage(
-                          context,
-                          'Password reset successfully. Please login with your new password.',
-                          MessageType.success,
-                        );
-                        Navigator.of(context).pushNamedAndRemoveUntil(
-                          AppConstants.loginRoute,
-                          (route) => false,
-                        );
-                      } else {
-                        final message = response.message ?? 'Failed to reset password';
-                        _showMessage(context, message, MessageType.error);
-                      }
-                    },
-                  ),
-                ],
+                    const SizedBox(height: 16),
+                    CustomTextField(
+                      controller: viewModel.confirmPasswordController,
+                      label: 'Confirm Password',
+                      icon: Icons.lock_outline,
+                      isPassword: true,
+                    ),
+                    const Spacer(),
+                    if (viewModel.error != null)
+                      MessageWidget(
+                        message: viewModel.error!,
+                        type: MessageType.error,
+                      ),
+                    LoadingButton(
+                      isLoading: viewModel.isLoading,
+                      text: 'RESET PASSWORD',
+                      onPressed: () async {
+                        if (!viewModel.validateInputs()) {
+                          return;
+                        }
+                        final response = await viewModel.resetPassword();
+                        if (!context.mounted) return;
+                        
+                        if (response.success) {
+                          _showMessage(
+                            context,
+                            'Password reset successfully. Please login with your new password.',
+                            MessageType.success,
+                          );
+                          Navigator.of(context).pushNamedAndRemoveUntil(
+                            AppConstants.loginRoute,
+                            (route) => false,
+                          );
+                        } else {
+                          final message = response.message ?? 'Failed to reset password';
+                          _showMessage(context, message, MessageType.error);
+                        }
+                      },
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
