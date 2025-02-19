@@ -16,7 +16,7 @@ class EventListView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      create: (_) => EventListViewModel(
+      create: (context) => EventListViewModel(
         eventRepository: Provider.of<EventRepository>(context, listen: false),
       ),
       child: const EventListScreen(),
@@ -38,10 +38,10 @@ class _EventListScreenState extends State<EventListScreen> {
   @override
   void initState() {
     super.initState();
-    // Load events when the screen is first shown
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      print('EventListScreen: Loading events...');
-      Provider.of<EventListViewModel>(context, listen: false).loadEvents();
+      if (mounted) {
+        Provider.of<EventListViewModel>(context, listen: false).initialize();
+      }
     });
   }
 
@@ -75,19 +75,32 @@ class _EventListScreenState extends State<EventListScreen> {
     }).toList();
 
     // Sort events: upcoming first, sorted by start date
-    filteredEvents.sort((a, b) {
-      final now = DateTime.now();
-      final aIsUpcoming = a.startDate.isAfter(now);
-      final bIsUpcoming = b.startDate.isAfter(now);
-
-      if (aIsUpcoming && !bIsUpcoming) return -1;
-      if (!aIsUpcoming && bIsUpcoming) return 1;
-
-      return a.startDate.compareTo(b.startDate);
-    });
+    filteredEvents.sort((a, b) => a.startDate.compareTo(b.startDate));
 
     print('EventListScreen: Filtered to ${filteredEvents.length} events');
     return filteredEvents;
+  }
+
+  Future<void> _navigateToEventDetail(BuildContext context, Event event) async {
+    if (!mounted) return;
+
+    try {
+      final navigator = Navigator.of(context);
+      if (!navigator.mounted) return;
+
+      final result = await navigator.push<bool>(
+        MaterialPageRoute(
+          builder: (context) => EventDetailView(eventId: event.id!),
+          maintainState: true,
+        ),
+      );
+
+      if (result == true && mounted) {
+        Provider.of<EventListViewModel>(context, listen: false).loadEvents();
+      }
+    } catch (e) {
+      print('Navigation error: $e');
+    }
   }
 
   @override
@@ -120,134 +133,118 @@ class _EventListScreenState extends State<EventListScreen> {
           );
 
           return RefreshIndicator(
-            onRefresh: () async => viewModel.loadEvents(),
-            child: Column(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surface,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 10,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    children: [
-                      TextField(
-                        controller: _searchController,
-                        decoration: InputDecoration(
-                          hintText: 'Search events...',
-                          prefixIcon: const Icon(Icons.search),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 12,
-                          ),
+            onRefresh: viewModel.loadEvents,
+            child: CustomScrollView(
+              slivers: [
+                SliverToBoxAdapter(
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surface,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 10,
+                          offset: const Offset(0, 2),
                         ),
-                        onChanged: (value) => setState(() {}),
-                      ),
-                      const SizedBox(height: 16),
-                      SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          children: [
-                            _FilterChip(
-                              label: 'All',
-                              selected: _selectedFilter == 'all',
-                              onSelected: (selected) {
-                                setState(() => _selectedFilter = 'all');
-                              },
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        TextField(
+                          controller: _searchController,
+                          decoration: InputDecoration(
+                            hintText: 'Search events...',
+                            prefixIcon: const Icon(Icons.search),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                            const SizedBox(width: 8),
-                            _FilterChip(
-                              label: 'Upcoming',
-                              selected: _selectedFilter == 'upcoming',
-                              onSelected: (selected) {
-                                setState(() => _selectedFilter = 'upcoming');
-                              },
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
                             ),
-                            const SizedBox(width: 8),
-                            _FilterChip(
-                              label: 'Past',
-                              selected: _selectedFilter == 'past',
-                              onSelected: (selected) {
-                                setState(() => _selectedFilter = 'past');
-                              },
-                            ),
-                            const SizedBox(width: 8),
-                            _FilterChip(
-                              label: 'Joined',
-                              selected: _selectedFilter == 'joined',
-                              onSelected: (selected) {
-                                setState(() => _selectedFilter = 'joined');
-                              },
-                            ),
-                          ],
+                          ),
+                          onChanged: (value) {
+                            if (mounted) setState(() {});
+                          },
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-                Expanded(
-                  child: filteredEvents.isEmpty
-                      ? Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
                             children: [
-                              Icon(
-                                Icons.event_busy,
-                                size: 64,
-                                color: Colors.grey[400],
+                              _FilterChip(
+                                label: 'All',
+                                selected: _selectedFilter == 'all',
+                                onSelected: (selected) {
+                                  if (mounted) setState(() => _selectedFilter = 'all');
+                                },
                               ),
-                              const SizedBox(height: 16),
-                              Text(
-                                'No events found',
-                                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                  color: Colors.grey[600],
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'Try adjusting your filters',
-                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                  color: Colors.grey[600],
-                                ),
+                              const SizedBox(width: 8),
+                              _FilterChip(
+                                label: 'Joined',
+                                selected: _selectedFilter == 'joined',
+                                onSelected: (selected) {
+                                  if (mounted) setState(() => _selectedFilter = 'joined');
+                                },
                               ),
                             ],
                           ),
-                        )
-                      : ListView.builder(
-                          padding: const EdgeInsets.only(bottom: 16),
-                          itemCount: filteredEvents.length,
-                          itemBuilder: (context, index) {
-                            final event = filteredEvents[index];
-                            return EventCard(
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                if (filteredEvents.isEmpty)
+                  SliverFillRemaining(
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.event_busy,
+                            size: 64,
+                            color: Colors.grey[400],
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'No events found',
+                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Try adjusting your filters',
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                else
+                  SliverPadding(
+                    padding: const EdgeInsets.all(16),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) {
+                          final event = filteredEvents[index];
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 16),
+                            child: EventCard(
                               event: event,
                               currentUserEmail: currentUserEmail,
                               onJoin: () => _handleJoinEvent(context, viewModel, event),
                               onLeave: () => _handleLeaveEvent(context, viewModel, event),
-                              onTap: () async {
-                                final result = await Navigator.push<bool>(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => EventDetailView(eventId: event.id!),
-                                  ),
-                                );
-
-                                if (result == true) {
-                                  viewModel.loadEvents();
-                                }
-                              },
-                            );
-                          },
-                        ),
-                ),
+                              onTap: () => _navigateToEventDetail(context, event),
+                            ),
+                          );
+                        },
+                        childCount: filteredEvents.length,
+                      ),
+                    ),
+                  ),
               ],
             ),
           );
@@ -256,11 +253,7 @@ class _EventListScreenState extends State<EventListScreen> {
     );
   }
 
-  Future<void> _handleJoinEvent(
-    BuildContext context,
-    EventListViewModel viewModel,
-    Event event,
-  ) async {
+  Future<void> _handleJoinEvent(BuildContext context, EventListViewModel viewModel, Event event) async {
     final response = await viewModel.joinEvent(event.id!);
     if (context.mounted) {
       if (response.success) {
@@ -274,11 +267,7 @@ class _EventListScreenState extends State<EventListScreen> {
     }
   }
 
-  Future<void> _handleLeaveEvent(
-    BuildContext context,
-    EventListViewModel viewModel,
-    Event event,
-  ) async {
+  Future<void> _handleLeaveEvent(BuildContext context, EventListViewModel viewModel, Event event) async {
     final response = await viewModel.leaveEvent(event.id!);
     if (context.mounted) {
       if (response.success) {

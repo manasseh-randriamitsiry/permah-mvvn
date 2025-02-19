@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../core/theme/theme_provider.dart';
 import '../repository/auth_repository.dart';
 import '../core/constants/app_constants.dart';
+import '../view/my_events_view.dart';
 
 class MenuWidget extends StatelessWidget {
   final int currentIndex;
@@ -67,7 +68,6 @@ class MenuWidget extends StatelessWidget {
               selected: currentIndex == 0,
               onTap: () {
                 onPageChanged(0);
-                Navigator.pop(context);
               },
             ),
             ListTile(
@@ -75,7 +75,13 @@ class MenuWidget extends StatelessWidget {
               title: const Text('My Events', style: TextStyle(color: Colors.white)),
               onTap: () {
                 Navigator.pop(context);
-                Navigator.pushNamed(context, '/my-events');
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const MyEventsView(),
+                    maintainState: true,
+                  ),
+                );
               },
             ),
             _MenuItem(

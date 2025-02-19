@@ -63,7 +63,7 @@ class LoginScreen extends StatelessWidget {
             children: [
               const AuthHeader(
                 icon: Icons.event,
-                title: 'Welcome Back',
+                title: 'Welcome',
                 subtitle: 'Sign in to continue',
               ),
               Expanded(

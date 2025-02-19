@@ -35,6 +35,7 @@ class _HomeViewState extends State<HomeView> {
         context,
         MaterialPageRoute(
           builder: (context) => const CreateEventView(),
+          maintainState: true,
         ),
       ).then((result) {
         if (result == true) {
@@ -76,32 +77,38 @@ class _HomeViewState extends State<HomeView> {
 
   @override
   Widget build(BuildContext context) {
-    final themeProvider = Provider.of<ThemeProvider>(context);
-    final theme = Theme.of(context);
-
-    return ZoomDrawer(
-      controller: _drawerController,
-      menuScreen: MenuWidget(
-        currentIndex: _currentIndex,
-        onPageChanged: _handlePageChanged,
-      ),
-      mainScreen: Scaffold(
-        appBar: AppBar(
-          title: Text(_getPageTitle()),
-          leading: IconButton(
-            icon: const Icon(Icons.menu),
-            onPressed: () => _drawerController.toggle?.call(),
-          ),
+    return WillPopScope(
+      onWillPop: () async {
+        if (_drawerController.isOpen?.call() == true) {
+          _drawerController.close?.call();
+          return false;
+        }
+        return true;
+      },
+      child: ZoomDrawer(
+        controller: _drawerController,
+        menuScreen: MenuWidget(
+          currentIndex: _currentIndex,
+          onPageChanged: _handlePageChanged,
         ),
-        body: _getCurrentPage(),
+        mainScreen: Scaffold(
+          appBar: AppBar(
+            title: Text(_getPageTitle()),
+            leading: IconButton(
+              icon: const Icon(Icons.menu),
+              onPressed: () => _drawerController.toggle?.call(),
+            ),
+          ),
+          body: _getCurrentPage(),
+        ),
+        borderRadius: 24,
+        showShadow: true,
+        angle: 0.0,
+        menuBackgroundColor: Theme.of(context).primaryColor,
+        slideWidth: MediaQuery.of(context).size.width * 0.65,
+        openCurve: Curves.fastOutSlowIn,
+        closeCurve: Curves.bounceIn,
       ),
-      borderRadius: 24,
-      showShadow: true,
-      angle: 0.0,
-      menuBackgroundColor: Theme.of(context).primaryColor,
-      slideWidth: MediaQuery.of(context).size.width * 0.65,
-      openCurve: Curves.fastOutSlowIn,
-      closeCurve: Curves.bounceIn,
     );
   }
 }

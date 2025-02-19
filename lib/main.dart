@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'core/constants/app_constants.dart';
@@ -20,6 +21,7 @@ import 'view/forgot_password_view.dart';
 import 'view/verify_reset_code_view.dart';
 import 'view/reset_password_view.dart';
 import 'view/my_events_view.dart';
+import 'view/event_list_view.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -70,6 +72,7 @@ class MyApp extends StatelessWidget {
     return Consumer<ThemeProvider>(
       builder: (context, themeProvider, child) {
         return MaterialApp(
+          debugShowMaterialGrid: false,
           debugShowCheckedModeBanner: false,
           title: 'Permah',
           theme: AppTheme.lightTheme,
@@ -89,6 +92,7 @@ class MyApp extends StatelessWidget {
             AppConstants.dashboardRoute: (context) => const DashboardView(),
             AppConstants.profileRoute: (context) => const ProfileView(),
             AppConstants.createEventRoute: (context) => const CreateEventView(),
+            AppConstants.eventListRoute: (context) => const EventListView(),
           },
         );
       },

@@ -12,53 +12,102 @@ class EventListViewModel extends ChangeNotifier {
   bool _isLoading = false;
   String? _error;
   List<Event> _events = [];
-  List<Event> _upcomingEvents = [];
-  List<Event> _pastEvents = [];
   List<Event> _searchResults = [];
   EventStatistics? _eventStatistics;
   EventParticipants? _eventParticipants;
+  bool _isDisposed = false;
+  bool _isInitialized = false;
 
   EventListViewModel({required EventRepository eventRepository})
-      : _eventRepository = eventRepository;
+      : _eventRepository = eventRepository {
+    initialize();
+  }
+
+  @override
+  void dispose() {
+    _isDisposed = true;
+    super.dispose();
+  }
+
+  void _safeNotifyListeners() {
+    if (!_isDisposed) {
+      notifyListeners();
+    }
+  }
 
   bool get isLoading => _isLoading;
   String? get error => _error;
   List<Event> get events => List.unmodifiable(_events);
-  List<Event> get upcomingEvents => List.unmodifiable(_upcomingEvents);
-  List<Event> get pastEvents => List.unmodifiable(_pastEvents);
   List<Event> get searchResults => List.unmodifiable(_searchResults);
   EventStatistics? get eventStatistics => _eventStatistics;
   EventParticipants? get eventParticipants => _eventParticipants;
+  bool get isInitialized => _isInitialized;
+
+  Future<void> initialize() async {
+    if (_isInitialized || _isDisposed) return;
+    _isInitialized = true;
+    await loadEvents();
+  }
 
   Future<void> loadEvents() async {
+    if (_isDisposed) return;
+    
     print('EventListViewModel: Starting loadEvents()');
     _isLoading = true;
     _error = null;
-    notifyListeners();
+    _events = []; // Clear existing events before loading
+    _safeNotifyListeners();
 
     try {
       print('EventListViewModel: Making API call to load events...');
       final response = await _eventRepository.getEvents();
+      if (_isDisposed) return;
+
       if (response.success) {
-        _events = response.data ?? [];
+        // Filter for upcoming events and today's events, then sort by date
+        final now = DateTime.now();
+        _events = (response.data ?? [])
+            .where((event) => 
+              event.startDate.isAfter(now) || 
+              (event.startDate.year == now.year && 
+               event.startDate.month == now.month && 
+               event.startDate.day == now.day)
+            )
+            .toList()
+          ..sort((a, b) => a.startDate.compareTo(b.startDate));
+        
         _error = null;
-        print('EventListViewModel: Successfully loaded ${_events.length} events');
+        print('EventListViewModel: Successfully loaded ${_events.length} upcoming events');
         
-        // Update participant counts for all events
-        print('EventListViewModel: Updating participant counts...');
-        for (final event in _events) {
-          if (event.id != null) {
-            print('EventListViewModel: Loading participants for event ${event.id}');
-            await _updateEventParticipants(event, _events.indexOf(event));
+        if (!_isDisposed) {
+          // Update participant counts and join status for all events
+          print('EventListViewModel: Updating participant counts and join status...');
+          for (final event in _events) {
+            if (_isDisposed) return;
+            if (event.id != null) {
+              final index = _events.indexOf(event);
+              print('EventListViewModel: Loading participants for event ${event.id}');
+              await _updateEventParticipants(event, index);
+              // Check join status for each event
+              await _checkJoinStatus(event, index);
+            }
           }
-        }
-        
-        // Schedule notifications for all joined upcoming events
-        print('EventListViewModel: Scheduling notifications for joined upcoming events...');
-        for (final event in _events) {
-          if (event.isJoined == true && event.startDate.isAfter(DateTime.now())) {
-            print('EventListViewModel: Scheduling notification for event ${event.id}');
-            await _notificationService.scheduleEventNotification(event);
+          
+          // Try to schedule notifications, but don't let failures affect the UI
+          try {
+            print('EventListViewModel: Scheduling notifications for joined upcoming events...');
+            for (final event in _events) {
+              if (_isDisposed) return;
+              if (event.isJoined == true && event.startDate.isAfter(DateTime.now())) {
+                print('EventListViewModel: Scheduling notification for event ${event.id}');
+                await _notificationService.scheduleEventNotification(event).catchError((e) {
+                  print('EventListViewModel: Failed to schedule notification for event ${event.id}: $e');
+                  return null;
+                });
+              }
+            }
+          } catch (e) {
+            print('EventListViewModel: Error scheduling notifications: $e');
           }
         }
       } else {
@@ -66,36 +115,16 @@ class EventListViewModel extends ChangeNotifier {
         print('EventListViewModel: Failed to load events: $_error');
       }
     } catch (e) {
-      _error = 'Failed to load events: ${e.toString()}';
-      print('EventListViewModel: Error loading events: $_error');
+      if (!_isDisposed) {
+        _error = 'Failed to load events: ${e.toString()}';
+        print('EventListViewModel: Error loading events: $_error');
+      }
     } finally {
-      _isLoading = false;
-      print('EventListViewModel: Finished loadEvents(), events: ${_events.length}, error: $_error');
-      notifyListeners();
-    }
-  }
-
-  Future<void> loadUpcomingEvents() async {
-    try {
-      final response = await _eventRepository.getUpcomingEvents();
-      if (response.success) {
-        _upcomingEvents = response.data ?? [];
-        notifyListeners();
+      if (!_isDisposed) {
+        _isLoading = false;
+        print('EventListViewModel: Finished loadEvents(), events: ${_events.length}, error: $_error');
+        _safeNotifyListeners();
       }
-    } catch (e) {
-      print('Error loading upcoming events: $e');
-    }
-  }
-
-  Future<void> loadPastEvents() async {
-    try {
-      final response = await _eventRepository.getPastEvents();
-      if (response.success) {
-        _pastEvents = response.data ?? [];
-        notifyListeners();
-      }
-    } catch (e) {
-      print('Error loading past events: $e');
     }
   }
 
@@ -108,6 +137,7 @@ class EventListViewModel extends ChangeNotifier {
     double? maxPrice,
     bool? hasAvailablePlaces,
   }) async {
+    if (_isDisposed) return;
     try {
       final response = await _eventRepository.searchEvents(
         query: query,
@@ -118,9 +148,9 @@ class EventListViewModel extends ChangeNotifier {
         maxPrice: maxPrice,
         hasAvailablePlaces: hasAvailablePlaces,
       );
-      if (response.success) {
+      if (!_isDisposed && response.success) {
         _searchResults = response.data ?? [];
-        notifyListeners();
+        _safeNotifyListeners();
       }
     } catch (e) {
       print('Error searching events: $e');
@@ -128,11 +158,12 @@ class EventListViewModel extends ChangeNotifier {
   }
 
   Future<void> loadEventStatistics(int eventId) async {
+    if (_isDisposed) return;
     try {
       final response = await _eventRepository.getEventStatistics(eventId);
-      if (response.success) {
+      if (!_isDisposed && response.success) {
         _eventStatistics = response.data;
-        notifyListeners();
+        _safeNotifyListeners();
       }
     } catch (e) {
       print('Error loading event statistics: $e');
@@ -140,11 +171,12 @@ class EventListViewModel extends ChangeNotifier {
   }
 
   Future<void> loadEventParticipants(int eventId) async {
+    if (_isDisposed) return;
     try {
       final response = await _eventRepository.getEventParticipants(eventId);
-      if (response.success && response.data != null) {
+      if (!_isDisposed && response.success && response.data != null) {
         _eventParticipants = EventParticipants.fromJson(response.data!);
-        notifyListeners();
+        _safeNotifyListeners();
       }
     } catch (e) {
       print('Error loading event participants: $e');
@@ -152,27 +184,80 @@ class EventListViewModel extends ChangeNotifier {
   }
 
   Future<void> refreshEvents() async {
+    if (_isDisposed) return;
     await loadEvents();
   }
 
+  Future<void> _checkJoinStatus(Event event, int index) async {
+    if (_isDisposed) return;
+    try {
+      final response = await _eventRepository.joinEvent(event.id);
+      if (!_isDisposed && response.statusCode == 400 && response.message?.contains('Already joined') == true) {
+        _events[index] = event.copyWith(isJoined: true);
+        print('EventListViewModel: Event ${event.id} is already joined');
+        _safeNotifyListeners();
+      }
+    } catch (e) {
+      print('EventListViewModel: Error checking join status for event ${event.id}: $e');
+    }
+  }
+
   Future<ApiResponse<void>> joinEvent(int eventId) async {
+    if (_isDisposed) {
+      return ApiResponse(
+        success: false,
+        message: 'View model is disposed',
+        statusCode: 500,
+      );
+    }
+    
     try {
       final response = await _eventRepository.joinEvent(eventId);
-      // Update the UI if either the join was successful OR if the user has already joined
-      if (response.success || response.message?.contains('Already joined') == true) {
-        // Get updated participant count for this event
-        final participantsResponse = await _eventRepository.getEventParticipants(eventId);
+      print('Join event response status: ${response.statusCode}');
+      print('Join event response body: ${response.message}');
+      
+      if (_isDisposed) {
+        return ApiResponse(
+          success: false,
+          message: 'View model is disposed',
+          statusCode: 500,
+        );
+      }
+      
+      // Handle both success (200) and "already joined" (400) cases
+      if (response.success || (response.statusCode == 400 && response.message?.contains('Already joined') == true)) {
+        // Update the event's isJoined status in the local list
+        final index = _events.indexWhere((e) => e.id == eventId);
+        if (index != -1) {
+          _events[index] = _events[index].copyWith(
+            isJoined: true,
+            // Only increment attendees count if it's a new join (success case)
+            attendeesCount: response.success ? _events[index].attendeesCount + 1 : _events[index].attendeesCount
+          );
+          _safeNotifyListeners();
+        }
         
-        // Refresh the events list to get updated attendee counts from the server
-        await loadEvents();
-        
-        // Schedule notification for the joined event
-        final event = _events.firstWhere((e) => e.id == eventId);
-        if (event.startDate.isAfter(DateTime.now())) {
-          await _notificationService.scheduleEventNotification(event);
+        // Try to schedule notification, but don't let failure affect the UI
+        if (!_isDisposed) {
+          try {
+            final event = _events.firstWhere((e) => e.id == eventId);
+            if (event.startDate.isAfter(DateTime.now())) {
+              await _notificationService.scheduleEventNotification(event).catchError((e) {
+                print('EventListViewModel: Failed to schedule notification for event $eventId: $e');
+                return null;
+              });
+            }
+          } catch (e) {
+            print('EventListViewModel: Error scheduling notification for event $eventId: $e');
+          }
         }
         
         return ApiResponse.success(null);
+      }
+      
+      // Only return error response for actual errors
+      if (response.statusCode == 400 && response.message?.contains('Already joined') == true) {
+        return ApiResponse.success(null); // Convert "Already joined" to success
       }
       return response;
     } catch (e) {
@@ -185,18 +270,42 @@ class EventListViewModel extends ChangeNotifier {
   }
 
   Future<ApiResponse<void>> leaveEvent(int eventId) async {
+    if (_isDisposed) {
+      return ApiResponse(
+        success: false,
+        message: 'View model is disposed',
+        statusCode: 500,
+      );
+    }
+    
     try {
       final response = await _eventRepository.leaveEvent(eventId);
-      // Update the UI if either the leave was successful OR if the user wasn't joined
-      if (response.success || response.message?.contains('not joined') == true) {
-        // Get updated participant count for this event
-        final participantsResponse = await _eventRepository.getEventParticipants(eventId);
-        
-        // Refresh the events list to get updated attendee counts from the server
-        await loadEvents();
+      
+      if (_isDisposed) {
+        return ApiResponse(
+          success: false,
+          message: 'View model is disposed',
+          statusCode: 500,
+        );
+      }
+      
+      // Handle both success (200) and "not joined" (400) cases
+      if (response.success || (response.statusCode == 400 && response.message?.contains('not joined') == true)) {
+        // Update the event's isJoined status in the local list
+        final index = _events.indexWhere((e) => e.id == eventId);
+        if (index != -1) {
+          _events[index] = _events[index].copyWith(
+            isJoined: false,
+            // Only decrement attendees count if it's a successful leave
+            attendeesCount: response.success ? _events[index].attendeesCount - 1 : _events[index].attendeesCount
+          );
+          _safeNotifyListeners();
+        }
         
         // Cancel notification for the left event
-        await _notificationService.cancelEventNotification(eventId);
+        if (!_isDisposed) {
+          await _notificationService.cancelEventNotification(eventId);
+        }
         
         return ApiResponse.success(null);
       }
@@ -211,14 +320,16 @@ class EventListViewModel extends ChangeNotifier {
   }
 
   Future<void> _updateEventParticipants(Event event, int index) async {
+    if (_isDisposed) return;
     try {
       final participantsResponse = await _eventRepository.getEventParticipants(event.id);
-      if (participantsResponse.success && participantsResponse.data != null) {
+      if (!_isDisposed && participantsResponse.success && participantsResponse.data != null) {
         final data = participantsResponse.data!;
         _events[index] = event.copyWith(
           attendeesCount: data['total_participants'] as int,
         );
         print('EventListViewModel: Updated event ${event.id} with ${data['total_participants']} participants');
+        _safeNotifyListeners();
       }
     } catch (e) {
       print('EventListViewModel: Error updating participants for event ${event.id}: $e');
