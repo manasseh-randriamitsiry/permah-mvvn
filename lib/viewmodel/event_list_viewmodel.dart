@@ -82,8 +82,6 @@ class EventListViewModel extends ChangeNotifier {
             if (event.id != null) {
               final index = _events.indexOf(event);
               await _updateEventParticipants(event, index);
-              // Check join status for each event
-              await _checkJoinStatus(event, index);
             }
           }
           
@@ -182,10 +180,11 @@ class EventListViewModel extends ChangeNotifier {
   Future<void> _checkJoinStatus(Event event, int index) async {
     if (_isDisposed) return;
     try {
-      final response = await _eventRepository.joinEvent(event.id);
-      if (!_isDisposed && response.statusCode == 400 && response.message?.contains('Already joined') == true) {
-        _events[index] = event.copyWith(isJoined: true);
-        print('EventListViewModel: Event ${event.id} is already joined');
+      // Instead of trying to join, we'll use the event's isJoined property
+      // This property should be set by the API when fetching events
+      if (event.isJoined != null) {
+        _events[index] = event.copyWith(isJoined: event.isJoined);
+        print('EventListViewModel: Event ${event.id} join status: ${event.isJoined}');
         _safeNotifyListeners();
       }
     } catch (e) {

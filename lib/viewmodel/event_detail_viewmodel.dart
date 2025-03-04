@@ -61,11 +61,10 @@ class EventDetailViewModel extends ChangeNotifier {
 
   Future<void> _checkJoinStatus() async {
     try {
-      final response = await _eventRepository.joinEvent(eventId);
-      // If we get "Already joined" response, update the event's join status
-      if (response.statusCode == 400 && response.message?.contains('Already joined') == true) {
-        _event = _event?.copyWith(isJoined: true);
-        print('EventDetailViewModel: Event $eventId is already joined');
+      // Instead of trying to join, we'll use the event's isJoined property
+      // This property should be set by the API when fetching the event
+      if (_event?.isJoined != null) {
+        print('EventDetailViewModel: Event $eventId join status: ${_event?.isJoined}');
         notifyListeners();
       }
     } catch (e) {

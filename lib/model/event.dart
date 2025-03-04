@@ -44,7 +44,7 @@ class Event {
       availablePlaces: json['available_places'] as int,
       price: (json['price'] as num).toDouble(),
       imageUrl: json['image_url'] as String? ?? 'https://picsum.photos/800/400',
-      attendeesCount: json['attendees']?.length ?? 0,
+      attendeesCount: json['attendees_count'] as int? ?? 0,
       isFull: json['is_full'] as bool? ?? false,
       isJoined: json['is_joined'] as bool?,
       creator: json['creator'] as Map<String, dynamic>?,
