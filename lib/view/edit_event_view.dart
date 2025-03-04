@@ -77,29 +77,31 @@ class _EditEventViewState extends State<EditEventView> {
         initialTime: TimeOfDay.fromDateTime(
           isStartDate ? _startDate : _endDate,
         ),
+        builder: (BuildContext context, Widget? child) {
+          return MediaQuery(
+            data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: false),
+            child: child!,
+          );
+        },
       );
       if (time != null) {
         setState(() {
+          final DateTime fullDateTime = DateTime(
+            picked.year,
+            picked.month,
+            picked.day,
+            time.hour,
+            time.minute,
+          );
+          
           if (isStartDate) {
-            _startDate = DateTime(
-              picked.year,
-              picked.month,
-              picked.day,
-              time.hour,
-              time.minute,
-            );
+            _startDate = fullDateTime;
             // Ensure end date is not before start date
             if (_endDate.isBefore(_startDate)) {
               _endDate = _startDate.add(const Duration(hours: 1));
             }
           } else {
-            _endDate = DateTime(
-              picked.year,
-              picked.month,
-              picked.day,
-              time.hour,
-              time.minute,
-            );
+            _endDate = fullDateTime;
           }
         });
       }
@@ -253,7 +255,9 @@ class _EditEventViewState extends State<EditEventView> {
   }
 
   String _formatDateTime(DateTime dateTime) {
+    final hour = dateTime.hour == 0 ? 12 : (dateTime.hour > 12 ? dateTime.hour - 12 : dateTime.hour);
+    final period = dateTime.hour < 12 ? 'AM' : 'PM';
     return '${dateTime.year}-${dateTime.month.toString().padLeft(2, '0')}-${dateTime.day.toString().padLeft(2, '0')} '
-        '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
+        '${hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')} $period';
   }
 } 

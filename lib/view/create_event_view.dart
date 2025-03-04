@@ -47,24 +47,27 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
         initialTime: TimeOfDay.fromDateTime(
           isStartDate ? viewModel.startDate ?? DateTime.now() : viewModel.endDate ?? DateTime.now().add(const Duration(hours: 2)),
         ),
+        builder: (BuildContext context, Widget? child) {
+          return MediaQuery(
+            data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: false),
+            child: child!,
+          );
+        },
       );
       if (time != null && mounted) {
+        // Convert TimeOfDay to 24-hour format
+        final DateTime fullDateTime = DateTime(
+          picked.year,
+          picked.month,
+          picked.day,
+          time.hour,
+          time.minute,
+        );
+        
         if (isStartDate) {
-          viewModel.setStartDate(DateTime(
-            picked.year,
-            picked.month,
-            picked.day,
-            time.hour,
-            time.minute,
-          ));
+          viewModel.setStartDate(fullDateTime);
         } else {
-          viewModel.setEndDate(DateTime(
-            picked.year,
-            picked.month,
-            picked.day,
-            time.hour,
-            time.minute,
-          ));
+          viewModel.setEndDate(fullDateTime);
         }
       }
     }
@@ -198,7 +201,9 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   }
 
   String _formatDateTime(DateTime dateTime) {
+    final hour = dateTime.hour == 0 ? 12 : (dateTime.hour > 12 ? dateTime.hour - 12 : dateTime.hour);
+    final period = dateTime.hour < 12 ? 'AM' : 'PM';
     return '${dateTime.year}-${dateTime.month.toString().padLeft(2, '0')}-${dateTime.day.toString().padLeft(2, '0')} '
-        '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
+        '${hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')} $period';
   }
 }
