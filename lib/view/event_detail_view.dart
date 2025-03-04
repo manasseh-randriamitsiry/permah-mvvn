@@ -337,7 +337,7 @@ class EventDetailScreen extends StatelessWidget {
               Expanded(
                 child: _StatItem(
                   icon: Icons.attach_money,
-                  value: '\$${event.price.toStringAsFixed(2)}',
+                  value: 'Ar ${event.price.toStringAsFixed(2)}',
                   label: 'Price',
                   theme: theme,
                 ),

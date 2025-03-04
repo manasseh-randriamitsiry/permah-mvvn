@@ -107,7 +107,7 @@ class _EventStatisticsState extends State<EventStatistics> {
                 child: _StatCard(
                   icon: Icons.attach_money,
                   title: 'Total Income',
-                  value: '\$${stats.totalIncome.toStringAsFixed(2)}',
+                  value: 'Ar ${stats.totalIncome.toStringAsFixed(2)}',
                   color: Colors.purple,
                 ),
               ),
@@ -142,7 +142,7 @@ class _EventStatisticsState extends State<EventStatistics> {
       if (event.id != null && event.isCreator(widget.currentUserEmail)) {
         final participantCount = participantCounts[event.id] ?? 0;
         final eventIncome = participantCount * event.price;
-        print('Event ${event.id} income: $participantCount participants × \$${event.price} = \$${eventIncome} (owned by current user)');
+        print('Event ${event.id} income: $participantCount participants × Ar ${event.price} = Ar ${eventIncome} (owned by current user)');
         
         totalParticipants += participantCount;
         totalIncome += eventIncome;
@@ -150,11 +150,11 @@ class _EventStatisticsState extends State<EventStatistics> {
         // Still print info for non-owned events but don't add to total
         final participantCount = participantCounts[event.id] ?? 0;
         final eventIncome = participantCount * event.price;
-        print('Event ${event.id} income: $participantCount participants × \$${event.price} = \$${eventIncome} (not owned by current user)');
+        print('Event ${event.id} income: $participantCount participants × Ar ${event.price} = Ar ${eventIncome} (not owned by current user)');
       }
     }
 
-    print('Total income across owned events: \$${totalIncome}');
+    print('Total income across owned events: Ar ${totalIncome}');
     return _EventStats(
       upcomingEvents: upcomingEvents,
       nextWeekEvents: nextWeekEvents,

@@ -213,7 +213,7 @@ class EventCard extends StatelessWidget {
                         ),
                       Text(
                         event.price > 0
-                            ? NumberFormat.currency(symbol: '\$').format(event.price)
+                            ? NumberFormat.currency(symbol: 'Ar ').format(event.price)
                             : 'Free',
                         style: theme.textTheme.titleMedium?.copyWith(
                           color: theme.colorScheme.primary,

@@ -4,6 +4,7 @@ import '../core/theme/theme_provider.dart';
 import '../repository/auth_repository.dart';
 import '../core/constants/app_constants.dart';
 import '../view/my_events_view.dart';
+import 'server_settings_dialog.dart';
 
 class MenuWidget extends StatelessWidget {
   final int currentIndex;
@@ -103,6 +104,17 @@ class MenuWidget extends StatelessWidget {
               onTap: () => onPageChanged(3),
             ),
             const Divider(color: Colors.white24),
+            _MenuItem(
+              icon: Icons.dns,
+              title: 'Server Settings',
+              isSelected: false,
+              onTap: () {
+                showDialog(
+                  context: context,
+                  builder: (context) => const ServerSettingsDialog(),
+                );
+              },
+            ),
             _MenuItem(
               icon: themeProvider.themeMode == ThemeMode.dark
                   ? Icons.light_mode

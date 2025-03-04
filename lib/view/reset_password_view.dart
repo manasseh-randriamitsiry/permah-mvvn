@@ -17,6 +17,11 @@ class ResetPasswordView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final args = ModalRoute.of(context)?.settings.arguments as Map<String, String>;
+    print('ResetPasswordView arguments:');
+    print('Email: ${args['email']}');
+    print('Code length: ${args['code']?.length}');
+    print('Code: ${args['code']}');
+    
     return ChangeNotifierProvider(
       create: (_) => ResetPasswordViewModel(
         Provider.of<AuthRepository>(context, listen: false),
@@ -88,13 +93,22 @@ class ResetPasswordScreen extends StatelessWidget {
                             isLoading: viewModel.isLoading,
                             text: 'RESET PASSWORD',
                             onPressed: () async {
+                              print('Reset password button pressed');
                               if (!viewModel.validateInputs()) {
+                                print('Password validation failed');
+                                _showMessage(
+                                  context,
+                                  viewModel.error ?? 'Password validation failed',
+                                  MessageType.error,
+                                );
                                 return;
                               }
+                              print('Starting password reset process from UI');
                               final response = await viewModel.resetPassword();
                               if (!context.mounted) return;
                               
                               if (response.success) {
+                                print('Password reset successful, navigating to login');
                                 _showMessage(
                                   context,
                                   'Password reset successfully. Please login with your new password.',
@@ -105,8 +119,12 @@ class ResetPasswordScreen extends StatelessWidget {
                                   (route) => false,
                                 );
                               } else {
-                                final message = response.message ?? 'Failed to reset password';
-                                _showMessage(context, message, MessageType.error);
+                                print('Password reset failed: ${response.message}');
+                                _showMessage(
+                                  context,
+                                  response.message ?? 'Failed to reset password. Please try again.',
+                                  MessageType.error,
+                                );
                               }
                             },
                           ),

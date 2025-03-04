@@ -745,6 +745,9 @@ class ApiService {
       String email, String code, String newPassword) async {
     final client = http.Client();
     try {
+      print('Making reset password API request to: $baseUrl/api/auth/reset-password');
+      print('Request payload: email=$email, code length=${code.length}');
+      
       final response = await client
           .post(
             Uri.parse('$baseUrl/api/auth/reset-password'),
@@ -760,14 +763,19 @@ class ApiService {
           )
           .timeout(timeout);
 
+      print('Reset password API response status: ${response.statusCode}');
+      print('Reset password API response body: ${response.body}');
+
       if (response.statusCode == 200) {
         return ApiResponse.success(null);
       } else {
         try {
           final data = json.decode(response.body);
           final errorMessage = data['message'] ?? 'Failed to reset password';
+          print('Reset password error: $errorMessage');
           return ApiResponse.error(errorMessage, statusCode: response.statusCode);
         } catch (e) {
+          print('Error parsing reset password response: $e');
           return ApiResponse.error(
             'Failed to reset password',
             statusCode: response.statusCode,

@@ -19,7 +19,14 @@ class LoadingButton extends StatelessWidget {
       width: double.infinity,
       height: 56,
       child: ElevatedButton(
-        onPressed: isLoading ? null : onPressed,
+        onPressed: isLoading ? null : () {
+          print('LoadingButton pressed');
+          print('isLoading: $isLoading');
+          print('onPressed is null: ${onPressed == null}');
+          if (onPressed != null) {
+            onPressed!();
+          }
+        },
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFF673AB7),
           foregroundColor: Colors.white,
