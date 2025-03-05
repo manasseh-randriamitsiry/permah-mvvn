@@ -110,8 +110,15 @@ class RegisterScreen extends StatelessWidget {
                               if (!context.mounted) return;
                               
                               if (response.success) {
-                                Navigator.of(context)
-                                    .pushReplacementNamed(AppConstants.homeRoute);
+                                _showMessage(
+                                  context,
+                                  'Account created successfully. Please verify your email.',
+                                  MessageType.success,
+                                );
+                                Navigator.of(context).pushNamed(
+                                  AppConstants.verifyResetCodeRoute,
+                                  arguments: viewModel.emailController.text,
+                                );
                               } else {
                                 final message = response.message ?? 'Registration failed';
                                 _showMessage(context, message, MessageType.error);
