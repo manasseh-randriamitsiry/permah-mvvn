@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../core/services/api_service.dart';
 import '../repository/auth_repository.dart';
 import '../viewmodel/register_viewmodel.dart';
-import '../widgets/btn_widget.dart';
-import '../widgets/input_widget.dart';
-import '../widgets/input_password_widget.dart';
-import '../core/utils/app_utils.dart';
+import '../core/constants/app_constants.dart';
+import '../widgets/auth_gradient_background.dart';
+import '../widgets/auth_header.dart';
+import '../widgets/auth_form_container.dart';
+import '../widgets/custom_text_field.dart';
+import '../widgets/message_widget.dart';
+import '../widgets/loading_button.dart';
+import '../widgets/server_settings_dialog.dart';
 
 class RegisterView extends StatelessWidget {
   const RegisterView({super.key});
@@ -15,6 +20,7 @@ class RegisterView extends StatelessWidget {
     return ChangeNotifierProvider(
       create: (_) => RegisterViewModel(
         Provider.of<AuthRepository>(context, listen: false),
+        Provider.of<ApiService>(context, listen: false),
       ),
       child: const RegisterScreen(),
     );
@@ -24,121 +30,130 @@ class RegisterView extends StatelessWidget {
 class RegisterScreen extends StatelessWidget {
   const RegisterScreen({super.key});
 
+  void _showMessage(BuildContext context, String message, MessageType type) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: MessageWidget(
+          message: message,
+          type: type,
+        ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
+  void _showServerSettings(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => const ServerSettingsDialog(),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final viewModel = Provider.of<RegisterViewModel>(context);
-    final theme = Theme.of(context);
-    final screenHeight = MediaQuery.of(context).size.height;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Register'),
-        centerTitle: true,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            SizedBox(height: screenHeight * 0.02),
-            const Text(
-              'Create your account',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
+      body: AuthGradientBackground(
+        child: SafeArea(
+          child: SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minHeight: MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top,
               ),
-              textAlign: TextAlign.center,
-            ),
-            SizedBox(height: screenHeight * 0.04),
-            if (viewModel.error != null)
-              Container(
-                padding: const EdgeInsets.all(8.0),
-                color: theme.colorScheme.error.withOpacity(0.1),
-                child: Text(
-                  viewModel.error!,
-                  style: TextStyle(
-                    color: theme.colorScheme.error,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            SizedBox(height: screenHeight * 0.02),
-            InputWidget(
-              icon: Icons.person_outline,
-              labelText: 'Full Name',
-              controller: viewModel.nameController,
-              type: TextInputType.name,
-            ),
-            const SizedBox(height: 16),
-            InputWidget(
-              icon: Icons.email_outlined,
-              labelText: 'Email',
-              controller: viewModel.emailController,
-              type: TextInputType.emailAddress,
-            ),
-            const SizedBox(height: 16),
-            InputPasswordWidget(
-              lblText: 'Password',
-              controller: viewModel.passwordController,
-            ),
-            const SizedBox(height: 16),
-            InputPasswordWidget(
-              lblText: 'Confirm Password',
-              controller: viewModel.confirmPasswordController,
-            ),
-            SizedBox(height: screenHeight * 0.04),
-            if (viewModel.isLoading)
-              const Center(child: CircularProgressIndicator())
-            else
-              BtnWidget(
-                text: 'Register',
-                onTap: viewModel.isLoading
-                    ? () {}
-                    : () => _handleRegister(context),
-                inputWidth: MediaQuery.of(context).size.width * 0.8,
-                inputHeight: 48,
-              ),
-            SizedBox(height: screenHeight * 0.02),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: RichText(
-                text: TextSpan(
-                  text: 'Already have an account? ',
-                  style: TextStyle(color: theme.textTheme.bodyLarge?.color),
+              child: IntrinsicHeight(
+                child: Column(
                   children: [
-                    TextSpan(
-                      text: 'Login here',
-                      style: TextStyle(
-                        color: theme.primaryColor,
-                        fontWeight: FontWeight.bold,
+                    const AuthHeader(
+                      icon: Icons.person_add,
+                      title: 'Create Account',
+                      subtitle: 'Sign up to get started',
+                    ),
+                    Expanded(
+                      child: AuthFormContainer(
+                        title: 'Sign Up',
+                        children: [
+                          CustomTextField(
+                            controller: viewModel.nameController,
+                            label: 'Full Name',
+                            icon: Icons.person_outline,
+                          ),
+                          CustomTextField(
+                            controller: viewModel.emailController,
+                            label: 'Email',
+                            icon: Icons.email_outlined,
+                            keyboardType: TextInputType.emailAddress,
+                          ),
+                          CustomTextField(
+                            controller: viewModel.passwordController,
+                            label: 'Password',
+                            icon: Icons.lock_outline,
+                            isPassword: true,
+                          ),
+                          CustomTextField(
+                            controller: viewModel.confirmPasswordController,
+                            label: 'Confirm Password',
+                            icon: Icons.lock_outline,
+                            isPassword: true,
+                          ),
+                          const Spacer(),
+                          LoadingButton(
+                            isLoading: viewModel.isLoading,
+                            text: 'SIGN UP',
+                            onPressed: () async {
+                              if (!viewModel.validateInputs()) {
+                                return;
+                              }
+                              final response = await viewModel.register();
+                              if (!context.mounted) return;
+                              
+                              if (response.success) {
+                                Navigator.of(context)
+                                    .pushReplacementNamed(AppConstants.homeRoute);
+                              } else {
+                                final message = response.message ?? 'Registration failed';
+                                _showMessage(context, message, MessageType.error);
+                              }
+                            },
+                          ),
+                          const SizedBox(height: 24),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Text(
+                                'Already have an account? ',
+                                style: TextStyle(
+                                  color: Colors.black54,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              TextButton(
+                                onPressed: () {
+                                  Navigator.pop(context);
+                                },
+                                child: const Text(
+                                  'Login',
+                                  style: TextStyle(
+                                    color: Color(0xFF673AB7),
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
               ),
             ),
-          ],
+          ),
         ),
       ),
     );
-  }
-
-  void _handleRegister(BuildContext context) async {
-    final viewModel = Provider.of<RegisterViewModel>(context, listen: false);
-    final response = await viewModel.register();
-    if (context.mounted) {
-      if (response.success) {
-        Navigator.of(context).pop(); // Return to login screen
-        AppUtils.showSnackBar(
-          context,
-          'Registration successful! Please login.',
-        );
-      } else {
-        AppUtils.showSnackBar(
-          context,
-          response.message ?? 'Registration failed',
-        );
-      }
-    }
   }
 }

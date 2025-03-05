@@ -1,74 +1,94 @@
 import 'package:flutter/material.dart';
+import '../common/util.dart';
+import '../model/api_response.dart';
 import '../model/user.dart';
 import '../repository/auth_repository.dart';
+import '../core/services/api_service.dart';
 
 class LoginViewModel extends ChangeNotifier {
   final AuthRepository _authRepository;
-  final TextEditingController usernameController = TextEditingController();
+  final ApiService _apiService;
+  final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
 
   bool _isLoading = false;
-  User? _currentUser;
+  String? _error;
 
-  LoginViewModel(this._authRepository);
+  LoginViewModel(this._authRepository, this._apiService);
 
   bool get isLoading => _isLoading;
-  User? get currentUser => _currentUser;
+  String? get error => _error;
 
   void setLoading(bool value) {
     _isLoading = value;
     notifyListeners();
   }
 
-  bool validateInputs() {
-    return usernameController.text.trim().isNotEmpty &&
-        passwordController.text.trim().isNotEmpty;
+  void setError(String? value) {
+    _error = value;
+    notifyListeners();
   }
 
-  Future<bool> login() async {
-    if (!validateInputs()) {
+  bool validateInputs() {
+    if (emailController.text.trim().isEmpty) {
+      setError('Email is required');
+      return false;
+    }
+    if (passwordController.text.isEmpty) {
+      setError('Password is required');
       return false;
     }
 
+    // Validate email format
+    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+        .hasMatch(emailController.text.trim())) {
+      setError('Please enter a valid email address');
+      return false;
+    }
+
+    setError(null);
+    return true;
+  }
+
+  Future<ApiResponse<User>> login() async {
+    if (!validateInputs()) {
+      return ApiResponse.error(_error ?? 'Validation failed');
+    }
+
     setLoading(true);
+    setError(null);
+
     try {
       final response = await _authRepository.login(
-        usernameController.text.trim(),
+        emailController.text.trim(),
         passwordController.text.trim(),
       );
 
       setLoading(false);
       if (response.success && response.data != null) {
-        _currentUser = response.data;
-        notifyListeners();
-        return true;
+        return response;
       }
-      return false;
-    } catch (e) {
-      setLoading(false);
-      return false;
-    }
-  }
 
-  Future<bool> logout() async {
-    setLoading(true);
-    try {
-      final success = await _authRepository.logout();
-      setLoading(false);
-      if (success) {
-        _currentUser = null;
-        notifyListeners();
-      }
-      return success;
+      setError(response.message ?? 'Login failed');
+      return response;
     } catch (e) {
       setLoading(false);
-      return false;
+      if (e.toString().contains('SocketException') ||
+          e.toString().contains('Connection refused')) {
+        setError(
+            'Network error: Could not connect to the server. Please check your IP address and make sure the server is running.');
+      } else if (e.toString().contains('TimeoutException')) {
+        setError('Network error: The connection timed out. Please try again.');
+      } else {
+        setError('An unexpected error occurred: ${e.toString()}');
+      }
+      return ApiResponse.error(_error ?? e.toString());
     }
   }
 
   @override
   void dispose() {
-    usernameController.dispose();
+    emailController.dispose();
     passwordController.dispose();
     super.dispose();
   }

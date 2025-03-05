@@ -21,9 +21,9 @@ class AuthRepository {
   static Future<AuthRepository> create({
     SharedPreferences? prefs,
     required String baseUrl,
+    required ApiService apiService,
   }) async {
     final sharedPrefs = prefs ?? await SharedPreferences.getInstance();
-    final apiService = ApiService(baseUrl: baseUrl);
     return AuthRepository._(
       prefs: sharedPrefs,
       apiService: apiService,
@@ -37,7 +37,13 @@ class AuthRepository {
     if (userJson != null) {
       try {
         _currentUser = User.fromJson(json.decode(userJson));
+        // Also restore the token if it exists
+        final token = _prefs.getString('auth_token');
+        if (token != null) {
+          _apiService.setToken(token);
+        }
       } catch (e) {
+        print('Error loading stored user: $e');
         _clearAuthData();
       }
     }
@@ -46,9 +52,17 @@ class AuthRepository {
   Future<ApiResponse<User>> login(String email, String password) async {
     final response = await _apiService.login(email, password);
     if (response.success && response.data != null) {
-      final user = User.fromJson(response.data!['user']);
-      await _saveAuthData(user);
-      return ApiResponse.success(user);
+      try {
+        print('Creating user from response data: ${response.data!['user']}');
+        final user = User.fromJson(response.data!['user']);
+        final token = response.data!['token'] as String;
+        await _saveAuthData(user, token);
+        return ApiResponse.success(user);
+      } catch (e) {
+        print('Error creating user from response: $e');
+        return ApiResponse.error(
+            'Error processing login response: ${e.toString()}');
+      }
     }
     return ApiResponse.error(response.message ?? 'Login failed');
   }
@@ -97,9 +111,11 @@ class AuthRepository {
     return true;
   }
 
-  Future<void> _saveAuthData(User user) async {
+  Future<void> _saveAuthData(User user, String token) async {
     _currentUser = user;
     await _saveUser(user);
+    await _prefs.setString('auth_token', token);
+    _apiService.setToken(token);
   }
 
   Future<void> _saveUser(User user) async {
@@ -109,5 +125,6 @@ class AuthRepository {
   Future<void> _clearAuthData() async {
     _currentUser = null;
     await _prefs.remove(_userKey);
+    await _prefs.remove('auth_token');
   }
 }

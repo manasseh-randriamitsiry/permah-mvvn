@@ -35,13 +35,31 @@ class CreateEventViewModel extends ChangeNotifier {
   }
 
   void setEndDate(DateTime date) {
-    if (date.isAfter(_startDate ?? date)) {
+    if (date.isAfter(_startDate ?? date) || 
+        (date.year == _startDate?.year && 
+         date.month == _startDate?.month && 
+         date.day == _startDate?.day && 
+         date.hour > _startDate!.hour || 
+         (date.hour == _startDate!.hour && date.minute > _startDate!.minute))) {
       _endDate = date;
       notifyListeners();
     } else {
-      _error = 'End date must be after start date';
+      _error = 'End time must be after start time';
       notifyListeners();
     }
+  }
+
+  void resetForm() {
+    titleController.clear();
+    descriptionController.clear();
+    locationController.clear();
+    availablePlacesController.clear();
+    priceController.clear();
+    imageUrlController.clear();
+    _startDate = null;
+    _endDate = null;
+    _error = null;
+    notifyListeners();
   }
 
   bool validateInputs() {
@@ -76,8 +94,14 @@ class CreateEventViewModel extends ChangeNotifier {
       return false;
     }
 
-    if (_endDate!.isBefore(_startDate!)) {
-      _error = 'End date must be after start date';
+    if (_endDate!.isBefore(_startDate!) || 
+        (_endDate!.year == _startDate!.year && 
+         _endDate!.month == _startDate!.month && 
+         _endDate!.day == _startDate!.day && 
+         _endDate!.hour < _startDate!.hour || 
+         (_endDate!.hour == _startDate!.hour && 
+          _endDate!.minute <= _startDate!.minute))) {
+      _error = 'End time must be after start time';
       notifyListeners();
       return false;
     }
@@ -99,16 +123,18 @@ class CreateEventViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
+      final totalPlaces = int.parse(availablePlacesController.text);
       final event = Event(
+        id: 0,
         title: titleController.text,
         description: descriptionController.text,
         location: locationController.text,
         startDate: _startDate!,
         endDate: _endDate!,
-        availablePlaces: int.parse(availablePlacesController.text),
+        availablePlaces: totalPlaces,
+        attendeesCount: 0,
         price: double.tryParse(priceController.text) ?? 0,
-        imageUrl:
-            imageUrlController.text.isEmpty ? null : imageUrlController.text,
+        imageUrl: imageUrlController.text.isEmpty ? 'https://picsum.photos/800/400' : imageUrlController.text,
       );
 
       final response = await _eventRepository.createEvent(event);

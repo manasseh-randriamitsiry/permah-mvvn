@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../repository/event_repository.dart';
 import '../viewmodel/create_event_viewmodel.dart';
-import '../widgets/input_widget.dart';
 import '../core/utils/app_utils.dart';
+import '../widgets/custom_text_field.dart';
+import '../widgets/loading_button.dart';
+import '../widgets/message_widget.dart';
 
 class CreateEventView extends StatelessWidget {
   const CreateEventView({super.key});
@@ -14,185 +16,194 @@ class CreateEventView extends StatelessWidget {
       create: (_) => CreateEventViewModel(
         eventRepository: Provider.of<EventRepository>(context, listen: false),
       ),
-      child: const CreateEventScreen(),
+      child: const Scaffold(
+        body: CreateEventScreen(),
+      ),
     );
   }
 }
 
-class CreateEventScreen extends StatelessWidget {
+class CreateEventScreen extends StatefulWidget {
   const CreateEventScreen({super.key});
+
+  @override
+  State<CreateEventScreen> createState() => _CreateEventScreenState();
+}
+
+class _CreateEventScreenState extends State<CreateEventScreen> {
+  final _formKey = GlobalKey<FormState>();
+
+  Future<void> _selectDate(BuildContext context, bool isStartDate) async {
+    final viewModel = Provider.of<CreateEventViewModel>(context, listen: false);
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: isStartDate ? viewModel.startDate ?? DateTime.now() : viewModel.endDate ?? DateTime.now().add(const Duration(hours: 2)),
+      firstDate: isStartDate ? DateTime.now() : viewModel.startDate ?? DateTime.now(),
+      lastDate: DateTime(2101),
+    );
+    if (picked != null) {
+      final TimeOfDay? time = await showTimePicker(
+        context: context,
+        initialTime: TimeOfDay.fromDateTime(
+          isStartDate ? viewModel.startDate ?? DateTime.now() : viewModel.endDate ?? DateTime.now().add(const Duration(hours: 2)),
+        ),
+        builder: (BuildContext context, Widget? child) {
+          return MediaQuery(
+            data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: false),
+            child: child!,
+          );
+        },
+      );
+      if (time != null && mounted) {
+        // Convert TimeOfDay to 24-hour format
+        final DateTime fullDateTime = DateTime(
+          picked.year,
+          picked.month,
+          picked.day,
+          time.hour,
+          time.minute,
+        );
+        
+        if (isStartDate) {
+          viewModel.setStartDate(fullDateTime);
+        } else {
+          viewModel.setEndDate(fullDateTime);
+        }
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final viewModel = Provider.of<CreateEventViewModel>(context);
-    final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Create Event'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (viewModel.error != null)
-              Container(
-                padding: const EdgeInsets.all(8),
-                margin: const EdgeInsets.only(bottom: 16),
-                color: theme.colorScheme.error.withOpacity(0.1),
-                child: Text(
-                  viewModel.error!,
-                  style: TextStyle(color: theme.colorScheme.error),
-                ),
+      body: SafeArea(
+        child: Form(
+          key: _formKey,
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              CustomTextField(
+                controller: viewModel.titleController,
+                label: 'Title',
+                icon: Icons.title,
               ),
-            InputWidget(
-              icon: Icons.title,
-              labelText: 'Event Title',
-              controller: viewModel.titleController,
-              type: TextInputType.text,
-            ),
-            const SizedBox(height: 16),
-            InputWidget(
-              icon: Icons.description,
-              labelText: 'Description',
-              controller: viewModel.descriptionController,
-              type: TextInputType.multiline,
-              maxLines: 3,
-            ),
-            const SizedBox(height: 16),
-            InputWidget(
-              icon: Icons.location_on,
-              labelText: 'Location',
-              controller: viewModel.locationController,
-              type: TextInputType.text,
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: ListTile(
-                    leading: const Icon(Icons.calendar_today),
-                    title: const Text('Start Date'),
-                    subtitle: Text(
-                      viewModel.startDate?.toString().split('.')[0] ??
-                          'Not set',
+              const SizedBox(height: 16),
+              CustomTextField(
+                controller: viewModel.descriptionController,
+                label: 'Description',
+                icon: Icons.description,
+                keyboardType: TextInputType.multiline,
+              ),
+              const SizedBox(height: 16),
+              CustomTextField(
+                controller: viewModel.locationController,
+                label: 'Location',
+                icon: Icons.location_on,
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: CustomTextField(
+                      controller: viewModel.availablePlacesController,
+                      label: 'Available Places',
+                      icon: Icons.people,
+                      keyboardType: TextInputType.number,
                     ),
-                    onTap: () async {
-                      final date = await showDatePicker(
-                        context: context,
-                        initialDate: DateTime.now(),
-                        firstDate: DateTime.now(),
-                        lastDate: DateTime.now().add(const Duration(days: 365)),
-                      );
-                      if (date != null) {
-                        final time = await showTimePicker(
-                          context: context,
-                          initialTime: TimeOfDay.now(),
-                        );
-                        if (time != null) {
-                          viewModel.setStartDate(DateTime(
-                            date.year,
-                            date.month,
-                            date.day,
-                            time.hour,
-                            time.minute,
-                          ));
-                        }
-                      }
-                    },
                   ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: CustomTextField(
+                      controller: viewModel.priceController,
+                      label: 'Price',
+                      icon: Icons.attach_money,
+                      keyboardType: TextInputType.number,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              CustomTextField(
+                controller: viewModel.imageUrlController,
+                label: 'Image URL (optional)',
+                icon: Icons.image,
+                keyboardType: TextInputType.url,
+              ),
+              const SizedBox(height: 16),
+              ListTile(
+                title: const Text('Start Date & Time'),
+                subtitle: Text(
+                  viewModel.startDate != null
+                      ? _formatDateTime(viewModel.startDate!)
+                      : 'Not set',
+                ),
+                trailing: const Icon(Icons.calendar_today),
+                onTap: () => _selectDate(context, true),
+              ),
+              ListTile(
+                title: const Text('End Date & Time'),
+                subtitle: Text(
+                  viewModel.endDate != null
+                      ? _formatDateTime(viewModel.endDate!)
+                      : 'Not set',
+                ),
+                trailing: const Icon(Icons.calendar_today),
+                onTap: () => _selectDate(context, false),
+              ),
+              if (viewModel.error != null) ...[
+                const SizedBox(height: 16),
+                MessageWidget(
+                  message: viewModel.error!,
+                  type: MessageType.error,
                 ),
               ],
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: ListTile(
-                    leading: const Icon(Icons.calendar_today),
-                    title: const Text('End Date'),
-                    subtitle: Text(
-                      viewModel.endDate?.toString().split('.')[0] ?? 'Not set',
-                    ),
-                    onTap: () async {
-                      final date = await showDatePicker(
-                        context: context,
-                        initialDate: viewModel.startDate ?? DateTime.now(),
-                        firstDate: viewModel.startDate ?? DateTime.now(),
-                        lastDate: DateTime.now().add(const Duration(days: 365)),
-                      );
-                      if (date != null) {
-                        final time = await showTimePicker(
-                          context: context,
-                          initialTime: TimeOfDay.now(),
-                        );
-                        if (time != null) {
-                          viewModel.setEndDate(DateTime(
-                            date.year,
-                            date.month,
-                            date.day,
-                            time.hour,
-                            time.minute,
-                          ));
-                        }
-                      }
-                    },
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            InputWidget(
-              icon: Icons.people,
-              labelText: 'Available Places',
-              controller: viewModel.availablePlacesController,
-              type: TextInputType.number,
-            ),
-            const SizedBox(height: 16),
-            InputWidget(
-              icon: Icons.attach_money,
-              labelText: 'Price',
-              controller: viewModel.priceController,
-              type: TextInputType.number,
-            ),
-            const SizedBox(height: 16),
-            InputWidget(
-              icon: Icons.image,
-              labelText: 'Image URL (Optional)',
-              controller: viewModel.imageUrlController,
-              type: TextInputType.url,
-            ),
-            const SizedBox(height: 32),
-            if (viewModel.isLoading)
-              const Center(child: CircularProgressIndicator())
-            else
-              ElevatedButton(
+              const SizedBox(height: 24),
+              LoadingButton(
+                isLoading: viewModel.isLoading,
+                text: 'CREATE EVENT',
                 onPressed: () async {
-                  final response = await viewModel.createEvent();
-                  if (context.mounted) {
-                    if (response.success) {
-                      Navigator.pop(context, true);
-                      AppUtils.showSnackBar(
-                        context,
-                        'Event created successfully',
-                      );
-                    } else {
-                      AppUtils.showSnackBar(
-                        context,
-                        response.message ?? 'Failed to create event',
-                      );
+                  if (_formKey.currentState!.validate()) {
+                    final response = await viewModel.createEvent();
+                    if (mounted) {
+                      if (response.success) {
+                        viewModel.resetForm();
+                        if (context.mounted) {
+                          AppUtils.showSnackBar(
+                            context,
+                            'Event created successfully',
+                          );
+                          Navigator.of(context).pop(true);
+                        }
+                      } else {
+                        AppUtils.showSnackBar(
+                          context,
+                          response.message ?? 'Failed to create event',
+                        );
+                      }
                     }
                   }
                 },
-                child: const Padding(
-                  padding: EdgeInsets.all(12),
-                  child: Text('CREATE EVENT'),
-                ),
               ),
-          ],
+            ],
+          ),
         ),
       ),
     );
+  }
+
+  String _formatDateTime(DateTime dateTime) {
+    final hour = dateTime.hour == 0 ? 12 : (dateTime.hour > 12 ? dateTime.hour - 12 : dateTime.hour);
+    final period = dateTime.hour < 12 ? 'AM' : 'PM';
+    return '${dateTime.year}-${dateTime.month.toString().padLeft(2, '0')}-${dateTime.day.toString().padLeft(2, '0')} '
+        '${hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')} $period';
   }
 }

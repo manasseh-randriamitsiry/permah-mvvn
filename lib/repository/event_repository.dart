@@ -1,5 +1,7 @@
 import '../model/api_response.dart';
 import '../model/event.dart';
+import '../model/event_statistics.dart';
+import '../model/participant.dart';
 import '../core/services/api_service.dart';
 
 class EventRepository {
@@ -9,10 +11,22 @@ class EventRepository {
 
   Future<ApiResponse<List<Event>>> getEvents() async {
     final response = await _apiService.getEvents();
+    print('Event repository received response: ${response.success}, data: ${response.data}');
+    
     if (response.success && response.data != null) {
-      final events = response.data!.map((e) => Event.fromJson(e)).toList();
-      return ApiResponse.success(events);
+      try {
+        final events = response.data!.map((e) {
+          print('Processing event data: $e');
+          return Event.fromJson(e);
+        }).toList();
+        print('Successfully parsed ${events.length} events');
+        return ApiResponse.success(events);
+      } catch (e) {
+        print('Error parsing events: $e');
+        return ApiResponse.error('Error parsing events: ${e.toString()}');
+      }
     }
+    print('Failed to fetch events: ${response.message}');
     return ApiResponse.error(response.message ?? 'Failed to fetch events');
   }
 
@@ -64,7 +78,7 @@ class EventRepository {
       location: location,
       availablePlaces: availablePlaces,
       price: price,
-      imageUrl: imageUrl,
+      imageUrl: imageUrl.toString(),
     );
 
     if (response.success && response.data != null) {
@@ -82,19 +96,123 @@ class EventRepository {
     return ApiResponse.error(response.message ?? 'Failed to delete event');
   }
 
-  Future<ApiResponse<bool>> joinEvent(int id) async {
-    final response = await _apiService.joinEvent(id);
+  Future<ApiResponse<bool>> joinEvent(int eventId) async {
+    final response = await _apiService.joinEvent(eventId);
     if (response.success) {
       return ApiResponse.success(true);
     }
     return ApiResponse.error(response.message ?? 'Failed to join event');
   }
 
-  Future<ApiResponse<bool>> leaveEvent(int id) async {
-    final response = await _apiService.leaveEvent(id);
+  Future<ApiResponse<bool>> leaveEvent(int eventId) async {
+    final response = await _apiService.leaveEvent(eventId);
     if (response.success) {
       return ApiResponse.success(true);
     }
     return ApiResponse.error(response.message ?? 'Failed to leave event');
+  }
+
+  Future<ApiResponse<List<Event>>> getUpcomingEvents() async {
+    final response = await _apiService.getUpcomingEvents();
+    if (response.success && response.data != null) {
+      try {
+        final events = response.data!.map((e) => Event.fromJson(e)).toList();
+        return ApiResponse.success(events);
+      } catch (e) {
+        return ApiResponse.error('Error parsing upcoming events: ${e.toString()}');
+      }
+    }
+    return ApiResponse.error(response.message ?? 'Failed to fetch upcoming events');
+  }
+
+  Future<ApiResponse<List<Event>>> getPastEvents() async {
+    final response = await _apiService.getPastEvents();
+    if (response.success && response.data != null) {
+      try {
+        final events = response.data!.map((e) => Event.fromJson(e)).toList();
+        return ApiResponse.success(events);
+      } catch (e) {
+        return ApiResponse.error('Error parsing past events: ${e.toString()}');
+      }
+    }
+    return ApiResponse.error(response.message ?? 'Failed to fetch past events');
+  }
+
+  Future<ApiResponse<List<Event>>> searchEvents({
+    String? query,
+    DateTime? startDate,
+    DateTime? endDate,
+    String? location,
+    double? minPrice,
+    double? maxPrice,
+    bool? hasAvailablePlaces,
+  }) async {
+    final response = await _apiService.searchEvents(
+      query: query,
+      startDate: startDate,
+      endDate: endDate,
+      location: location,
+      minPrice: minPrice,
+      maxPrice: maxPrice,
+      hasAvailablePlaces: hasAvailablePlaces,
+    );
+    if (response.success && response.data != null) {
+      try {
+        final events = response.data!.map((e) => Event.fromJson(e)).toList();
+        return ApiResponse.success(events);
+      } catch (e) {
+        return ApiResponse.error('Error parsing search results: ${e.toString()}');
+      }
+    }
+    return ApiResponse.error(response.message ?? 'Failed to search events');
+  }
+
+  Future<ApiResponse<EventStatistics>> getEventStatistics(int eventId) async {
+    final response = await _apiService.getEventStatistics(eventId);
+    if (response.success && response.data != null) {
+      try {
+        final stats = EventStatistics.fromJson(response.data!);
+        return ApiResponse.success(stats);
+      } catch (e) {
+        return ApiResponse.error('Error parsing event statistics: ${e.toString()}');
+      }
+    }
+    return ApiResponse.error(response.message ?? 'Failed to fetch event statistics');
+  }
+
+  Future<ApiResponse<Map<String, dynamic>>> getEventParticipants(int eventId) async {
+    try {
+      final response = await _apiService.getEventParticipants(eventId);
+      if (response.success) {
+        return response;
+      }
+      return ApiResponse.error(response.message ?? 'Failed to fetch event participants');
+    } catch (e) {
+      return ApiResponse.error('Network error: ${e.toString()}');
+    }
+  }
+
+  Future<ApiResponse<Map<String, dynamic>>> getMyCreatedEvents() async {
+    try {
+      final response = await _apiService.getMyCreatedEvents();
+      if (response.success) {
+        return response;
+      }
+      return ApiResponse.error(response.message ?? 'Failed to fetch created events');
+    } catch (e) {
+      return ApiResponse.error('Network error: ${e.toString()}');
+    }
+  }
+
+  Future<ApiResponse<Map<String, dynamic>>> getMyAttendedEvents() async {
+    try {
+      final response = await _apiService.getMyAttendedEvents();
+      if (response.success) {
+        return response;
+      }
+      return ApiResponse.error(response.message ?? 'Failed to fetch attended events');
+    } catch (e) {
+      return ApiResponse.error('Network error: ${e.toString()}');
+    }
   }
 }

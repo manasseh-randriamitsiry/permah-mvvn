@@ -1,6 +1,8 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../core/constants/app_constants.dart';
 
 bool isTablet(BuildContext context) {
   final mediaQuery = MediaQuery.of(context);
@@ -132,5 +134,32 @@ void showAlertSuccessWidget(
       ),
     ],
   );
+}
+
+Future<String> getApiBaseUrl() async {
+  final prefs = await SharedPreferences.getInstance();
+  final customIp = prefs.getString('custom_ip');
+  if (customIp != null && customIp.isNotEmpty) {
+    return 'http://$customIp:8000';
+  }
+  try {
+    return AppConstants.apiBaseUrl;
+  } catch (e) {
+    return AppConstants.apiBaseUrl2;
+  }
+}
+
+Future<void> saveCustomIp(String? ipAddress) async {
+  final prefs = await SharedPreferences.getInstance();
+  if (ipAddress == null || ipAddress.isEmpty) {
+    await prefs.remove('custom_ip');
+  } else {
+    await prefs.setString('custom_ip', ipAddress);
+  }
+}
+
+Future<String?> getCustomIp() async {
+  final prefs = await SharedPreferences.getInstance();
+  return prefs.getString('custom_ip');
 }
 
